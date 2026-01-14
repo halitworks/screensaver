@@ -3,189 +3,229 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Screen & Keyboard Tool</title>
+    <title>Screen & Keyboard Pro</title>
     <style>
         :root {
-            --bg: #0f172a;
-            --card: #1e293b;
-            --accent: #22c55e;
+            --bg: #0b0f1a;
+            --card: #161b2c;
+            --accent: #3b82f6;
+            --success: #22c55e;
             --text: #f8fafc;
-            --danger: #ef4444;
+            --key-bg: #2d3748;
         }
 
         body {
             background: var(--bg);
             color: var(--text);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Inter', sans-serif;
+            margin: 0;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
             min-height: 100vh;
-            margin: 0;
-            overflow: hidden;
         }
 
         .container {
-            background: var(--card);
-            padding: 30px;
-            border-radius: 20px;
-            width: 90%;
-            max-width: 500px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-            border: 1px solid rgba(255,255,255,0.1);
+            width: 95%;
+            max-width: 800px;
+            padding: 20px;
             text-align: center;
         }
 
-        h1 { font-size: 24px; margin-bottom: 20px; color: var(--accent); }
+        h1 { font-size: 22px; margin-bottom: 20px; opacity: 0.9; }
 
-        .button-group {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-bottom: 20px;
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 30px;
         }
 
         button {
-            padding: 12px;
+            padding: 12px 20px;
             border: none;
-            border-radius: 10px;
-            background: var(--accent);
-            color: var(--bg);
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        button:hover { transform: translateY(-2px); opacity: 0.9; }
-
-        button.secondary { background: #334155; color: white; }
-
-        button.danger { background: var(--danger); color: white; }
-
-        textarea {
-            width: 100%;
-            height: 120px;
-            background: #020617;
-            color: #22c55e;
-            border: 1px solid #334155;
-            padding: 10px;
             border-radius: 8px;
-            font-size: 11px;
-            resize: none;
-            margin-top: 15px;
-            box-sizing: border-box;
+            background: var(--accent);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
         }
 
-        /* Klavye Temizleme Overlay */
+        button:hover { filter: brightness(1.2); transform: translateY(-1px); }
+        button.active { background: var(--success); }
+        button.secondary { background: #475569; }
+
+        /* Klavye Test Alanı */
+        .keyboard-container {
+            background: var(--card);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .keyboard-row {
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+            margin-bottom: 5px;
+        }
+
+        .key {
+            background: var(--key-bg);
+            padding: 10px;
+            min-width: 35px;
+            height: 35px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            transition: 0.1s;
+            user-select: none;
+        }
+
+        .key.pressed {
+            background: var(--success);
+            color: var(--bg);
+            transform: scale(0.95);
+        }
+
+        .key.tested {
+            border: 1px solid var(--success);
+            color: var(--success);
+        }
+
+        /* Temizlik Modu Overlay */
         #cleaner-overlay {
             display: none;
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.95);
+            background: #000;
             z-index: 9999;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            text-align: center;
         }
 
-        #cleaner-overlay h2 { color: var(--danger); font-size: 40px; }
-        .hint { color: #64748b; font-size: 14px; margin-top: 10px; }
+        .exit-hint {
+            position: absolute;
+            bottom: 20px;
+            color: #444;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>🖥️ Screen Control</h1>
+    <h1>🛠️ Screen & Keyboard Tool</h1>
     
-    <div class="button-group">
+    <div class="controls">
         <button onclick="toggleWakeLock()" id="wakeBtn">☀️ Ekranı Uyanık Tut</button>
-        <button onclick="startCleaning()" class="secondary">⌨️ Klavye Temizliği</button>
+        <button onclick="startCleaning()" class="secondary">🧹 Klavye Temizliği</button>
+        <button onclick="resetTest()" class="secondary">🔄 Testi Sıfırla</button>
     </div>
 
-    <button onclick="copyCode()" style="width: 100%;">📋 PowerShell Kodunu Kopyala</button>
-
-    <textarea id="code" readonly>
-Add-Type @"
-using System;
-using System.Runtime.InteropServices;
-public class PowerManager {
-    [DllImport("kernel32.dll")]
-    public static extern uint SetThreadExecutionState(uint esFlags);
-}
-"@
-$ES_CONTINUOUS = 0x80000000
-$ES_DISPLAY_REQUIRED = 0x00000002
-$ES_SYSTEM_REQUIRED = 0x00000001
-Write-Host "Ekran kapanması engellendi."
-try { while ($true) { [PowerManager]::SetThreadExecutionState($ES_CONTINUOUS -bor $ES_DISPLAY_REQUIRED -bor $ES_SYSTEM_REQUIRED); Start-Sleep -Seconds 30 } }
-finally { [PowerManager]::SetThreadExecutionState($ES_CONTINUOUS) }
-    </textarea>
+    <div class="keyboard-container" id="tester">
+        </div>
 </div>
 
 <div id="cleaner-overlay">
-    <h2>KLAVYE TEMİZLEME MODU</h2>
-    <p>Tüm tuşlar devre dışı bırakıldı. İstediğiniz gibi silebilirsiniz.</p>
-    <p style="font-weight: bold; color: var(--accent);">Çıkmak için bu ekrana Mouse ile ÇİFT TIKLAYIN.</p>
-    <div id="key-display" style="font-size: 50px; margin-top: 20px; color: var(--accent);"></div>
+    <h1 style="color: white; font-size: 40px;">TEMİZLİK MODU AKTİF</h1>
+    <p style="color: #666;">Klavye girişleri engellendi.</p>
+    <div id="last-key" style="font-size: 60px; color: var(--success); margin-top: 20px;"></div>
+    <div class="exit-hint">Çıkmak için <b>Ctrl + C</b> tuşlarına basın</div>
 </div>
 
 <script>
-    // 1. Ekranı Uyanık Tutma (Browser Wake Lock)
+    // 1. Ekran Uyanık Tutma (Wake Lock)
     let wakeLock = null;
     async function toggleWakeLock() {
         const btn = document.getElementById('wakeBtn');
         if (wakeLock === null) {
             try {
                 wakeLock = await navigator.wakeLock.request('screen');
-                btn.innerText = "✅ Uyanık Tutuluyor";
-                btn.style.background = "#3b82f6";
-            } catch (err) {
-                alert("Tarayıcınız bu özelliği desteklemiyor veya izin verilmedi.");
-            }
+                btn.innerText = "✅ Ekran Kapanmaz";
+                btn.classList.add('active');
+            } catch (err) { alert("Tarayıcı desteklemiyor."); }
         } else {
             wakeLock.release();
             wakeLock = null;
             btn.innerText = "☀️ Ekranı Uyanık Tut";
-            btn.style.background = "#22c55e";
+            btn.classList.remove('active');
         }
     }
 
-    // 2. Klavye Temizleme Modu
-    function startCleaning() {
-        const overlay = document.getElementById('cleaner-overlay');
-        overlay.style.display = 'flex';
-        document.body.style.overflow = 'hidden';
-        
-        // Klavye tuşlarını engelle
-        window.addEventListener('keydown', preventKeys);
-    }
+    // 2. Klavye Test Programı Arayüzü
+    const rows = [
+        ["Esc", "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12"],
+        ["\"", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "*", "-", "Backspace"],
+        ["Tab", "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "Ğ", "Ü", "Enter"],
+        ["Caps", "A", "S", "D", "F", "G", "H", "J", "K", "L", "Ş", "İ", ","],
+        ["Shift", "Z", "X", "C", "V", "B", "N", "M", "Ö", "Ç", ".", "Shift"],
+        ["Ctrl", "Win", "Alt", "Space", "Alt", "Fn", "Ctrl"]
+    ];
 
-    function preventKeys(e) {
-        e.preventDefault();
-        document.getElementById('key-display').innerText = e.key.toUpperCase();
-        return false;
-    }
-
-    // Çıkış için çift tıklama
-    document.getElementById('cleaner-overlay').addEventListener('dblclick', () => {
-        const overlay = document.getElementById('cleaner-overlay');
-        overlay.style.display = 'none';
-        window.removeEventListener('keydown', preventKeys);
-        document.getElementById('key-display').innerText = "";
+    const tester = document.getElementById('tester');
+    rows.forEach(row => {
+        const rowDiv = document.createElement('div');
+        rowDiv.className = 'keyboard-row';
+        row.forEach(key => {
+            const keyDiv = document.createElement('div');
+            keyDiv.className = 'key';
+            keyDiv.innerText = key;
+            keyDiv.setAttribute('data-key', key.toUpperCase());
+            rowDiv.appendChild(keyDiv);
+        });
+        tester.appendChild(rowDiv);
     });
 
-    // 3. Kopyalama Fonksiyonu
-    function copyCode() {
-        const textarea = document.getElementById("code");
-        textarea.select();
-        document.execCommand("copy");
-        alert("PowerShell kodu kopyalandı!");
+    // Tuş basışlarını dinle
+    window.addEventListener('keydown', (e) => {
+        if (isCleaning) return;
+        const keyName = e.key.toUpperCase() === " " ? "SPACE" : e.key.toUpperCase();
+        const keyEl = document.querySelector(`[data-key="${keyName}"]`);
+        if (keyEl) {
+            keyEl.classList.add('pressed');
+            keyEl.classList.add('tested');
+        }
+    });
+
+    window.addEventListener('keyup', (e) => {
+        const keyName = e.key.toUpperCase() === " " ? "SPACE" : e.key.toUpperCase();
+        const keyEl = document.querySelector(`[data-key="${keyName}"]`);
+        if (keyEl) keyEl.classList.remove('pressed');
+    });
+
+    function resetTest() {
+        document.querySelectorAll('.key').forEach(k => k.classList.remove('tested', 'pressed'));
     }
 
-    // Küçük Pencere Açma (İsteğe bağlı - bir buton ile tetiklenebilir)
-    function openMiniWindow() {
-        window.open(window.location.href, 'ScreenTools', 'width=400,height=500,menubar=no,status=no,toolbar=no');
+    // 3. Klavye Temizleme Modu (Ctrl + C ile çıkış)
+    let isCleaning = false;
+    function startCleaning() {
+        isCleaning = true;
+        document.getElementById('cleaner-overlay').style.display = 'flex';
+        window.addEventListener('keydown', handleCleaning);
+    }
+
+    function handleCleaning(e) {
+        e.preventDefault();
+        // Ctrl + C kontrolü
+        if (e.ctrlKey && e.key.toLowerCase() === 'c') {
+            stopCleaning();
+            return;
+        }
+        document.getElementById('last-key').innerText = e.key.toUpperCase();
+    }
+
+    function stopCleaning() {
+        isCleaning = false;
+        document.getElementById('cleaner-overlay').style.display = 'none';
+        window.removeEventListener('keydown', handleCleaning);
+        document.getElementById('last-key').innerText = "";
     }
 </script>
 
