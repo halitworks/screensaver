@@ -1,7 +1,5 @@
-{
-  "name": "screensaver",
-  "compatibility_date": "2026-01-14",
-  "assets": {
-    "directory": "."
-  }
-}
+name = "screensaver"
+compatibility_date = "2026-01-14"
+
+[assets]
+directory = "."
