@@ -57,6 +57,20 @@
             gap: 6px; 
             border-left: 2px solid #2d3748; 
             padding-left: 20px; 
+            position: relative;
+            padding-bottom: 60px;
+        }
+        .arrow-keys {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            display: grid;
+            grid-template-areas: 
+                ". up ."
+                "left down right";
+            gap: 6px;
+            margin-top: 10px;
         }
 
         .keyboard-row { display: flex; justify-content: center; gap: 4px; }
@@ -96,6 +110,7 @@
         <div class="mode-grid">
             <button class="mode-btn" onclick="openMode('test-mode')">⌨️ Klavye Testi</button>
             <button class="mode-btn" onclick="openMode('clean-mode')">🧹 Klavye Temizliği</button>
+            <button class="mode-btn" onclick="openMode('text-mode')">📝 Ekran Yazı Testi</button>
         </div>
     </div>
 
@@ -114,9 +129,17 @@
         <div class="exit-info">Durdurmak için <b>Ctrl + C</b></div>
     </div>
 
+    <div id="text-mode" class="overlay" style="background: white; color: black; text-align: center; padding: 20px; overflow: hidden;">
+        <h1 style="color: black; margin-bottom: 30px;">EKRAN YAZI TESTİ</h1>
+        <div id="text-display" style="font-size: 24px; line-height: 1.6; height: 70vh; overflow: auto; padding: 20px;"></div>
+        <div class="exit-info" style="color: black; background: rgba(0,0,0,0.1);">Durdurmak için <b>Ctrl + C</b></div>
+    </div>
+
 <script>
     let wakeLock = null;
     let currentMode = null;
+    let textInterval = null;
+    const sampleText = "Bu bir ekran yazı testidir. Bu metin ekranda akacak şekilde ayarlanmıştır. Klavye testi uygulamasına hoş geldiniz. Tüm tuşların düzgün çalıştığından emin olmak için lütfen tüm tuşları test edin. Nokta işareti (.) yerine virgül (,) kullanılmıştır. Ok tuşları da test edilebilir.".repeat(5);
 
     // 1. Ekran Kilidi
     async function toggleWakeLock() {
@@ -146,10 +169,11 @@
 
     const numpadLayout = [
         ["NumLock","NL"], ["NumpadDivide","/"], ["NumpadMultiply","*"], ["NumpadSubtract","-"],
-        ["Numpad7","7"], ["Numpad8","8"], ["Numpad9","9"], ["NumpadAdd","+"],
+        ["Numpad7","7"], ["Numpad8","8"], ["Numpad9","9"], ["NumpadAdd",+""],
         ["Numpad4","4"], ["Numpad5","5"], ["Numpad6","6"], ["Numpad1","1"],
         ["Numpad2","2"], ["Numpad3","3"], ["NumpadEnter","Ent"], ["Numpad0","0"],
-        ["NumpadDecimal","."]
+        ["NumpadDecimal",","],
+        ["ArrowUp","↑", true], ["ArrowLeft","←", true], ["ArrowDown","↓", true], ["ArrowRight","→", true]
     ];
 
     function buildKB() {
@@ -168,12 +192,19 @@
         });
 
         const numKb = document.getElementById('numKb');
-        numpadLayout.forEach(([code, label]) => {
+        numpadLayout.forEach(([code, label, isArrow]) => {
             const k = document.createElement('div');
             k.className = 'key';
             k.dataset.code = code;
             k.innerText = label;
-            numKb.appendChild(k);
+            if (isArrow) {
+                const arrowKeys = document.createElement('div');
+                arrowKeys.className = 'arrow-keys';
+                arrowKeys.appendChild(k);
+                numKb.appendChild(arrowKeys);
+            } else {
+                numKb.appendChild(k);
+            }
         });
     }
     buildKB();
@@ -181,13 +212,40 @@
     // 3. Mod Yönetimi
     function openMode(id) {
         currentMode = id;
+        document.querySelectorAll('.overlay').forEach(el => el.style.display = 'none');
         document.getElementById(id).style.display = 'flex';
+        
+        // Start text display if text mode
+        if (id === 'text-mode') {
+            startTextDisplay();
+        } else {
+            // Stop text display if switching from text mode
+            if (textInterval) {
+                clearInterval(textInterval);
+                textInterval = null;
+            }
+        }
     }
 
-    function closeAllModes() {
-        document.querySelectorAll('.overlay').forEach(o => o.style.display = 'none');
-        document.getElementById('last-key-display').innerText = "";
-        currentMode = null;
+    // Metin Görüntüleme Fonksiyonu
+    function startTextDisplay() {
+        const textDisplay = document.getElementById('text-display');
+        let position = 0;
+        const chunkSize = 100; // Her adımda gösterilecek karakter sayısı
+        
+        // Clear any existing interval
+        if (textInterval) clearInterval(textInterval);
+        
+        textInterval = setInterval(() => {
+            if (position >= sampleText.length) position = 0;
+            const endPos = Math.min(position + chunkSize, sampleText.length);
+            textDisplay.textContent = sampleText.substring(position, endPos);
+            textDisplay.scrollTop = textDisplay.scrollHeight;
+            position += 1;
+        }, 100); // Her 100ms'de bir kaydır
+        
+        // İlk çalıştırmada hemen göster
+        textDisplay.textContent = sampleText.substring(0, chunkSize);
     }
 
     // 4. Tuş Dinleme
