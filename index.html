@@ -24,7 +24,6 @@
             justify-content: center;
             align-items: center;
             height: 100vh;
-            overflow: hidden;
         }
 
         .main-menu { text-align: center; width: 100%; max-width: 600px; padding: 20px; }
@@ -32,44 +31,58 @@
         .wake-lock-btn {
             width: 100%; padding: 40px; font-size: 28px; font-weight: 800; border: none;
             border-radius: 24px; background: var(--accent); color: white; cursor: pointer;
-            box-shadow: 0 15px 40px rgba(59, 130, 246, 0.3); transition: all 0.3s; margin-bottom: 30px;
+            box-shadow: 0 15px 40px rgba(59, 130, 246, 0.3); transition: 0.3s; margin-bottom: 30px;
         }
 
         .wake-lock-btn.active { background: var(--success); }
 
         .mode-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .mode-btn { padding: 20px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); background: var(--card); color: white; font-weight: 600; cursor: pointer; }
+        .mode-btn { padding: 20px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); background: var(--card); color: white; font-weight: 600; cursor: pointer; font-size: 18px; }
 
         .overlay {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: var(--bg); z-index: 100; flex-direction: column; justify-content: center; align-items: center;
         }
 
-        /* Klavye Yerleşimi */
-        .keyboard-wrapper { display: flex; gap: 20px; padding: 30px; background: var(--card); border-radius: 20px; transform: scale(0.9); }
-        .keyboard-grid { display: flex; flex-direction: column; gap: 6px; }
-        .numpad-grid { display: grid; grid-template-columns: repeat(3, 45px); gap: 6px; border-left: 2px solid #2d3748; padding-left: 20px; }
+        /* Klavye Tasarımı - Daha Geniş */
+        .keyboard-wrapper { 
+            display: flex; gap: 30px; padding: 40px; 
+            background: var(--card); border-radius: 24px; 
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        .keyboard-grid { display: flex; flex-direction: column; gap: 8px; }
+        .numpad-grid { display: grid; grid-template-columns: repeat(3, 55px); gap: 8px; border-left: 2px solid #2d3748; padding-left: 30px; }
 
-        .keyboard-row { display: flex; justify-content: center; gap: 4px; }
+        .keyboard-row { display: flex; justify-content: center; gap: 6px; }
 
         .key {
-            min-width: 40px; height: 40px; background: var(--key-bg); border-radius: 6px;
-            display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; transition: 0.1s;
+            min-width: 50px; height: 50px; background: var(--key-bg); border-radius: 8px;
+            display: flex; align-items: center; justify-content: center; 
+            font-size: 13px; font-weight: 700; transition: 0.1s; color: #94a3b8;
         }
 
-        /* Özel Tuş Boyutları */
-        .key[data-code="Space"] { width: 200px; }
-        .key[data-code="Backspace"] { width: 80px; }
-        .key[data-code="Enter"] { width: 90px; }
-        .key[data-code="ShiftLeft"], .key[data-code="ShiftRight"] { width: 100px; }
-        .key[data-code="CapsLock"] { width: 70px; }
+        /* Tuş Genişlik Ayarları */
+        .key[data-code="Space"] { width: 250px; }
+        .key[data-code="Backspace"] { width: 100px; }
+        .key[data-code="Enter"] { width: 110px; }
+        .key[data-code="ShiftLeft"], .key[data-code="ShiftRight"] { width: 120px; }
+        .key[data-code="CapsLock"] { width: 90px; }
+        .key[data-code="Tab"] { width: 70px; }
 
-        .key.pressed { background: var(--success); color: var(--bg); transform: translateY(2px); }
-        .key.tested { border: 2px solid var(--success); color: var(--success); }
+        .key.pressed { background: var(--success); color: var(--bg); transform: scale(0.95); }
+        .key.tested { border: 2px solid var(--success); color: var(--success); background: rgba(34, 197, 94, 0.1); }
 
-        .clean-header { font-size: 60px; font-weight: 900; color: var(--danger); }
-        #last-key-display { font-size: 100px; font-weight: 900; color: var(--success); min-height: 130px; }
-        .exit-info { position: absolute; bottom: 30px; color: #475569; font-size: 16px; }
+        /* Temizlik Modu */
+        .clean-header { font-size: 70px; font-weight: 900; color: var(--danger); margin: 0; }
+        .clean-status { font-size: 30px; margin-bottom: 40px; opacity: 0.7; }
+        #last-key-display { font-size: 120px; font-weight: 900; color: var(--success); min-height: 150px; }
+        
+        .exit-info { 
+            position: absolute; bottom: 50px; color: white; font-size: 18px; 
+            background: rgba(239, 68, 68, 0.2); padding: 12px 30px; border-radius: 50px;
+            border: 1px solid var(--danger);
+        }
     </style>
 </head>
 <body>
@@ -87,111 +100,124 @@
             <div class="keyboard-grid" id="mainKb"></div>
             <div class="numpad-grid" id="numKb"></div>
         </div>
-        <div class="exit-info">Ayrılmak için <b>Ctrl + C</b> (Esc Engellenmiştir)</div>
+        <div class="exit-info" style="background: rgba(255,255,255,0.1); border-color: #444;">Çıkmak için <b>Ctrl + C</b></div>
     </div>
 
     <div id="clean-mode" class="overlay" style="background: #000;">
-        <div class="clean-header">TEMİZLİK MODU</div>
+        <h1 class="clean-header">TEMİZLİK MODU</h1>
+        <p class="clean-status">Tüm Tuşlar Engellendi</p>
         <div id="last-key-display"></div>
-        <div class="exit-info">Dönmek için <b>Ctrl + C</b></div>
+        <div class="exit-info">Durdurmak için <b>Ctrl + C</b></div>
     </div>
 
 <script>
     let wakeLock = null;
     let currentMode = null;
 
-    // 1. Uyanık Tutma
+    // 1. Ekran Kilidi
     async function toggleWakeLock() {
         const btn = document.getElementById('wakeBtn');
         if (!wakeLock) {
-            try { wakeLock = await navigator.wakeLock.request('screen'); btn.innerText = "Ekran Kapanması Engellendi"; btn.classList.add('active'); } catch(e){}
+            try { 
+                wakeLock = await navigator.wakeLock.request('screen'); 
+                btn.innerText = "Ekran Kapanması Engellendi"; 
+                btn.classList.add('active'); 
+            } catch(e){}
         } else {
-            wakeLock.release(); wakeLock = null; btn.innerText = "Ekran Kapanmasını Engelle"; btn.classList.remove('active');
+            wakeLock.release(); wakeLock = null; 
+            btn.innerText = "Ekran Kapanmasını Engelle"; 
+            btn.classList.remove('active');
         }
     }
 
-    // 2. Klavye Verisi (code bazlı algılama için)
+    // 2. Klavye İnşası
     const mainKeys = [
         ["Escape", "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12"],
-        ["Backquote", "Digit1", "Digit2", "Digit3", "Digit4", "Digit5", "Digit6", "Digit7", "Digit8", "Digit9", "Digit0", "Minus", "Equal", "Backspace"],
-        ["Tab", "KeyQ", "KeyW", "KeyE", "KeyR", "KeyT", "KeyY", "KeyU", "KeyI", "KeyO", "KeyP", "BracketLeft", "BracketRight", "Enter"],
-        ["CapsLock", "KeyA", "KeyS", "KeyD", "KeyF", "KeyG", "KeyH", "KeyJ", "KeyK", "KeyL", "Semicolon", "Quote", "Backslash"],
-        ["ShiftLeft", "IntlBackslash", "KeyZ", "KeyX", "KeyC", "KeyV", "KeyB", "KeyN", "KeyM", "Comma", "Period", "Slash", "ShiftRight"],
-        ["ControlLeft", "MetaLeft", "AltLeft", "Space", "AltRight", "ContextMenu", "ControlRight"]
+        ["Backquote", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "=", "Backspace"],
+        ["Tab", "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "[", "]", "Enter"],
+        ["CapsLock", "A", "S", "D", "F", "G", "H", "J", "K", "L", ";", "'", "\\"],
+        ["ShiftLeft", "<", "Z", "X", "C", "V", "B", "N", "M", ",", ".", "/", "ShiftRight"],
+        ["Ctrl", "Win", "Alt", "Space", "AltGr", "Ctx", "Ctrl"]
     ];
 
-    const numpadKeys = ["NumLock", "NumpadDivide", "NumpadMultiply", "Numpad7", "Numpad8", "Numpad9", "Numpad4", "Numpad5", "Numpad6", "Numpad1", "Numpad2", "Numpad3", "Numpad0", "NumpadDecimal", "NumpadEnter"];
+    const numpadKeys = ["NL", "/", "*", "7", "8", "9", "4", "5", "6", "1", "2", "3", "0", ".", "Ent"];
 
     function buildKB() {
         const mainKb = document.getElementById('mainKb');
         mainKeys.forEach(row => {
             const rowDiv = document.createElement('div');
             rowDiv.className = 'keyboard-row';
-            row.forEach(code => {
+            row.forEach(keyText => {
                 const k = document.createElement('div');
                 k.className = 'key';
+                // Dataset code eşleştirmesi
+                let code = keyText;
+                if(keyText === "Ctrl") code = "ControlLeft";
+                if(keyText === "AltGr") code = "AltRight";
+                if(keyText === "Space") code = "Space";
+                if(keyText === "<") code = "IntlBackslash";
                 k.dataset.code = code;
-                k.innerText = code.replace("Key","").replace("Digit","").replace("Left","").replace("Right","");
+                k.innerText = keyText;
                 rowDiv.appendChild(k);
             });
             mainKb.appendChild(rowDiv);
         });
 
         const numKb = document.getElementById('numKb');
-        numpadKeys.forEach(code => {
+        numpadKeys.forEach(keyText => {
             const k = document.createElement('div');
             k.className = 'key';
-            k.dataset.code = code;
-            k.innerText = code.replace("Numpad","");
+            k.innerText = keyText;
             numKb.appendChild(k);
         });
     }
     buildKB();
 
-    // 3. Mod Kontrolü
+    // 3. Mod Yönetimi
     function openMode(id) {
         currentMode = id;
-        document.documentElement.requestFullscreen().catch(()=>{});
         document.getElementById(id).style.display = 'flex';
     }
 
     function closeAllModes() {
-        document.exitFullscreen().catch(()=>{});
         document.querySelectorAll('.overlay').forEach(o => o.style.display = 'none');
+        document.getElementById('last-key-display').innerText = "";
         currentMode = null;
     }
 
-    // 4. Tuş Dinleyici
+    // 4. Tuş Engelleme ve Algılama
     window.addEventListener('keydown', (e) => {
-        if (e.ctrlKey && e.key.toLowerCase() === 'c') { closeAllModes(); return; }
+        // Her koşulda Ctrl + C çıkışı sağlar
+        if (e.ctrlKey && e.key.toLowerCase() === 'c') {
+            closeAllModes();
+            return;
+        }
+
         if (!currentMode) return;
 
-        // Esc ve diğerlerini engelle
-        e.preventDefault(); 
+        // F tuşları dahil her şeyi engelle
+        e.preventDefault();
+        e.stopPropagation();
+
+        const code = e.code;
+        const keyEl = document.querySelector(`[data-code="${code}"]`);
         
-        const keyEl = document.querySelector(`[data-code="${e.code}"]`);
         if (keyEl) {
             keyEl.classList.add('pressed');
             keyEl.classList.add('tested');
         }
 
         if (currentMode === 'clean-mode') {
-            document.getElementById('last-key-display').innerText = e.code.replace("Key","");
+            let displayKey = e.key.toUpperCase();
+            if (displayKey === " ") displayKey = "SPACE";
+            document.getElementById('last-key-display').innerText = displayKey;
         }
-    });
+    }, true);
 
     window.addEventListener('keyup', (e) => {
         const keyEl = document.querySelector(`[data-code="${e.code}"]`);
         if (keyEl) keyEl.classList.remove('pressed');
-    });
-
-    // Esc ile tam ekrandan çıkış uyarısı (Browser kuralı gereği)
-    document.addEventListener('fullscreenchange', () => {
-        if (!document.fullscreenElement && currentMode) {
-            // Kullanıcı Esc ile zorla çıktıysa modu kapatmıyoruz, sadece bilgi veriyoruz
-            console.log("Kullanıcı tam ekrandan çıktı.");
-        }
-    });
+    }, true);
 </script>
 </body>
 </html>
