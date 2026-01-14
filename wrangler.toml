@@ -1,0 +1,3 @@
+name = "screensaver"
+main = "src/index.ts" # or "index.js", "src/worker.js", etc.
+compatibility_date = "2026-01-14"
