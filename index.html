@@ -9,20 +9,21 @@
         rel="stylesheet">
     <link rel="icon" type="image/png" href="icon.png">
     <link rel="stylesheet" href="style.css?v=1.3">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/nosleep/0.12.0/NoSleep.min.js"></script>
 </head>
 
 <body>
     <nav class="site-nav" id="siteNav">
         <div class="nav-inner">
             <img src="icon.png" alt="" class="nav-logo">
-            <span class="nav-title">Colin's IT Tool v1.8</span>
+            <span class="nav-title">Colin's IT Tool v1.9</span>
             <div class="nav-search-wrap">
                 <input type="text" class="nav-search" id="toolSearch" placeholder="🔍 Araç ara..."
                     oninput="filterTools(this.value)">
             </div>
         </div>
     </nav>
-    <div id="loading-screen"> <span class="loader"></span>
+    <div id="loading-screen"> <img src="icon.png" alt="Loading" class="loader-img">
         <div class="loading-text">Yükleniyor</div>
     </div>
     <div class="main-menu">
@@ -31,13 +32,16 @@
         <div class="status-panel" style="justify-content:center">
             <div id="wl-stat" class="status-item">WakeLock: Kapalı</div>
             <div id="vid-stat" class="status-item">FakeVideo: Kapalı</div>
+            <div id="ns-stat" class="status-item">NoSleep: Kapalı</div>
+            <div id="frame-stat" class="status-item">FrameReload: Kapalı</div>
         </div>
         <div class="info-note" style="color:rgba(255,255,255,0.55)">Uyku modunu önlemek için yukarıdaki butonu aktif
             edin. Tüm araçlar tamamen tarayıcıda
-            çalışır, internete dosya yüklemez.<br>⚠️ Bu Uygulama arka planda çalışırken (pencere gizlendiğinde) bu
-            özellik etkinliğini kaybeder.</div>
-        <a href="https://profteknoloji.com/ftp/sp168523.exe" target="_blank" rel="noopener noreferrer" download class="hp-mini-link">HP Support Assistant İndir</a>
-        <a href="https://profteknoloji.com/ftp/vantage.exe" target="_blank" rel="noopener noreferrer" download class="hp-mini-link">Lenovo Vantage İndir</a>
+            çalışır, internete dosya yüklemez.</div>
+        <a href="https://profteknoloji.com/ftp/sp168523.exe" target="_blank" rel="noopener noreferrer" download
+            class="hp-mini-link">HP Support Assistant İndir</a>
+        <a href="https://profteknoloji.com/ftp/vantage.exe" target="_blank" rel="noopener noreferrer" download
+            class="hp-mini-link">Lenovo Vantage İndir</a>
         <div class="cat-header red">🔧 IT / Sistem Araçları</div>
         <div class="tool-grid"><button class="tool-btn" onclick="openOverlay('ip-mode');loadIPInfo()"><span
                     class="icon">🌐</span><span class="label">IP Bilgisi</span><span class="desc">Public/Local IP ·
@@ -54,7 +58,7 @@
                 onclick="openOverlay('speed-mode');document.getElementById('speedFrame').src='https://fast.com'"><span
                     class="icon">⚡</span><span class="label">Hız Testi</span><span class="desc">İnternet hız
                     ölçümü</span></button><button class="tool-btn" onclick="openOverlay('benchmark-mode')"><span
-                    class="icon">🏋️</span><span class="label">Benchmark</span><span class="desc">CPU / GPU performans
+                    class="icon">🏋️</span><span class="label">Benchmark</span><span class="desc">CPU Performans
                     testi</span></button></div>
         <div class="cat-header blue">🖥️ Kullanıcı Destek</div>
         <div class="tool-grid"><button class="tool-btn" onclick="openOverlay('browser-test-mode')"><span
@@ -113,7 +117,10 @@
                     class="icon">🌙</span><span class="label">İftara Kalan</span><span class="desc">İftar saatine geri
                     sayım</span></button> <button class="tool-btn" onclick="openOverlay('pomodoro-mode')"><span
                     class="icon">🍅</span><span class="label">Pomodoro</span><span class="desc">Odaklanma ve
-                    Dinlenme</span></button> </div>
+                    Dinlenme</span></button> <button class="tool-btn"
+                onclick="openOverlay('weather-mode');initWeather()"><span class="icon">🌤️</span><span
+                    class="label">Hava Durumu</span><span class="desc">Saatlik & Günlük
+                    Tahmin</span></button> </div>
         <div class="footer-text">Bu site, 2025–2026 stajyerlik dönemi kapsamında Colin's IT Biriminden <b>Mehmet Halit
                 Bulut</b>
             tarafından yapılmıştır.<br>© 2025-2026 Tüm Hakları Saklıdır.</div><img
@@ -139,7 +146,7 @@
             <div onclick="closeAllModes()">Çıkmak için <b>Esc</b></div>
         </div>
     </div>
-    <div id="clean-mode" class="overlay" style="background:#000">
+    <div id="clean-mode" class="overlay">
         <h1 class="clean-header">TEMİZLİK MODU</h1>
         <p style="opacity:0.5;font-weight:500">Girişler Engellendi</p>
         <div id="last-key-display"></div>
@@ -519,45 +526,85 @@
         </div>
     </div>
     <div id="benchmark-mode" class="overlay">
-        <div class="tool-panel" style="text-align:center">
-            <div class="tool-panel-title">🏋️ Benchmark</div>
-            <div class="tool-panel-sub">CPU ve GPU performans testi — tamamen tarayıcıda</div>
-            <div id="benchResult" class="tp-card" style="margin-bottom:16px">
-                <div style="font-size:48px;font-weight:900;color:var(--accent);font-family:monospace" id="benchScore">—
-                </div>
-                <div style="font-size:12px;color:rgba(255,255,255,0.4);font-weight:600;margin-top:4px" id="benchLabel">
-                    Teste başlamak için butona basın</div>
+        <div class="tool-panel" style="text-align:center; max-width:700px;">
+            <div class="tool-panel-title">🏋️ CPU Benchmark</div>
+            <div class="tool-panel-sub">Multicore Web Worker Performance Test</div>
+
+            <div class="bench-mode-selector" style="display:flex; justify-content:center; gap:10px; margin: 20px 0;">
+                <button class="bench-mode-btn active" onclick="setBenchMode('performance')" id="bModePerf">Performance
+                    (Mid - 5sn)</button>
+                <button class="bench-mode-btn" onclick="setBenchMode('extreme')" id="bModeExt">Extreme (Hard -
+                    15sn)</button>
+                <button class="bench-mode-btn" onclick="setBenchMode('stress')" id="bModeStress">Stress
+                    (Burn-in - 60sn)</button>
             </div>
-            <div id="benchDetails" style="display:none">
-                <div class="tp-card" style="text-align:left;margin-bottom:8px">
-                    <div class="tp-row"><span class="tp-row-key">CPU Matematik</span><span class="tp-row-val"
-                            id="bCpuMath">—</span></div>
-                    <div class="tp-row"><span class="tp-row-key">CPU Sıralama</span><span class="tp-row-val"
-                            id="bCpuSort">—</span></div>
-                    <div class="tp-row"><span class="tp-row-key">CPU String</span><span class="tp-row-val"
-                            id="bCpuStr">—</span></div>
-                    <div class="tp-row"><span class="tp-row-key">CPU Crypto</span><span class="tp-row-val"
-                            id="bCpuCrypto">—</span></div>
-                    <div class="tp-row"><span class="tp-row-key">GPU Canvas 2D</span><span class="tp-row-val"
-                            id="bGpu2d">—</span></div>
-                    <div class="tp-row"><span class="tp-row-key">GPU WebGL</span><span class="tp-row-val"
-                            id="bGpuWgl">—</span></div>
-                    <div class="tp-row"><span class="tp-row-key">Bellek</span><span class="tp-row-val"
-                            id="bMem">—</span></div>
-                </div>
+
+            <div id="benchResult" class="glass-card"
+                style="padding:40px; margin-bottom:20px; transition:0.3s; position:relative; overflow:hidden;">
+                <!-- Glowing effect pseudo element will be in CSS -->
+                <div style="font-size:13px; font-weight:700; color:rgba(255,255,255,0.6); text-transform:uppercase; letter-spacing:2px; margin-bottom:10px;"
+                    id="benchCores">Analyzing Logical Cores...</div>
+                <div style="font-size:64px; font-weight:900; color:var(--accent); font-family:monospace; line-height:1; display:flex; align-items:baseline; justify-content:center; gap:8px;"
+                    id="benchScoreLine"><span id="benchScore">—</span><span id="benchMaxScore"
+                        style="font-size:20px; font-weight:600; color:rgba(255,255,255,0.3); display:none;">/
+                        15.000</span></div>
+                <div style="font-size:13px; color:rgba(255,255,255,0.4); font-weight:600; margin-top:16px;"
+                    id="benchLabel">Select a mode and press Start to measure processing power</div>
             </div>
-            <div id="benchProgress" style="display:none;margin-bottom:14px">
-                <div class="progress-bar-bg">
+
+            <div id="benchDetails"
+                style="display:none; text-align:left; margin-bottom:16px; background:rgba(0,0,0,0.2); border-radius:16px; padding:16px;">
+                <div class="tp-row"><span class="tp-row-key">Aktif İşparçacığı (Workers)</span><span class="tp-row-val"
+                        id="bWorkers">—</span></div>
+                <div class="tp-row"><span class="tp-row-key">Test Süresi</span><span class="tp-row-val"
+                        id="bTime">—</span></div>
+                <div class="tp-row" id="bIterRow"><span class="tp-row-key">İşlenen Döngü Hacmi</span><span
+                        class="tp-row-val" id="bIter">—</span></div>
+            </div>
+
+            <div id="benchProgress" style="display:none; margin-bottom:20px;">
+                <div class="progress-bar-bg" style="height:10px; border-radius:10px;">
                     <div class="progress-bar-fill" id="benchFill"
-                        style="background:linear-gradient(90deg,var(--accent),var(--success))"></div>
+                        style="border-radius:10px; background:linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899); transition: width 0.2s linear; background-size: 200% 200%; animation: gradientMove 2s ease infinite;">
+                    </div>
                 </div>
-                <div style="font-size:12px;color:rgba(255,255,255,0.5);margin-top:6px" id="benchStep">Hazırlanıyor...
+                <div style="font-size:13px; font-weight:600; color:rgba(255,255,255,0.6); margin-top:10px;"
+                    id="benchStep">Sistem hazırlanıyor...</div>
+            </div>
+
+            <div class="w-error-msg" id="benchWarn"
+                style="background:rgba(245, 158, 11, 0.15); border:1px solid rgba(245, 158, 11, 0.3); color:#fbbf24; text-align:left; margin-bottom:16px;">
+                ⚠️ <b>Uyarı:</b> Bu test işlemcinizin (CPU) %100'ünü kullanacak şekilde tasarlanmıştır. "Stress" modunda
+                cihazınız ısınabilir ve fanları hızlanabilir.
+            </div>
+
+            <!-- Score Bracket Legend -->
+            <div id="benchScoreInfo"
+                style="margin-bottom:20px; text-align:left; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:16px; font-size:12px; color:rgba(255,255,255,0.7);">
+                <div style="font-weight:700; color:#fff; margin-bottom:8px; font-size:13px;">🛡️ Puanlama & Performans
+                    Segmentleri:</div>
+                <div style="display:flex; flex-direction:column; gap:6px;">
+                    <div style="display:flex; justify-content:space-between;"><span>🔥 <b>12.000+</b> Puan:</span><span
+                            style="color:#f43f5e; font-weight:800;">CANAVAR (Üst Düzey)</span></div>
+                    <div style="display:flex; justify-content:space-between;"><span>⚡ <b>8.000+</b> Puan:</span><span
+                            style="color:#eab308; font-weight:800;">ÇOK GÜÇLÜ (Gelişmiş)</span></div>
+                    <div style="display:flex; justify-content:space-between;"><span>💪 <b>4.000+</b> Puan:</span><span
+                            style="color:#3b82f6; font-weight:800;">PERFORMANSLI (Ortalama Üstü)</span></div>
+                    <div style="display:flex; justify-content:space-between;"><span>👍 <b>2.000+</b> Puan:</span><span
+                            style="color:#10b981; font-weight:800;">ORTA SEVİYE (Günlük Kullanım)</span></div>
+                    <div style="display:flex; justify-content:space-between;"><span>🐢 <b>-2.000</b> Puan:</span><span
+                            style="color:#64748b; font-weight:800;">ZAYIF (Eski Nesil/Güç Tasarrufu)</span></div>
                 </div>
             </div>
-            <button class="tp-btn primary" id="benchStartBtn" onclick="runBenchmark()" style="width:100%">🚀 Testi
-                Başlat</button>
+
+            <button class="tp-btn primary" id="benchStartBtn" onclick="runSilverBenchmark()"
+                style="width:100%; font-size:16px; padding:18px;">🚀 Testi Başlat</button>
+            <button class="tp-btn danger" id="benchStopBtn" onclick="stopSilverBenchmark()"
+                style="display:none; width:100%; font-size:16px; padding:18px; margin-top:12px;">🛑 Testi İptal
+                Et</button>
         </div>
-        <div class="exit-info" onclick="closeAllModes()" style="justify-content:center">Çıkmak için <b>Esc</b></div>
+        <div class="exit-info" onclick="stopSilverBenchmark(); closeAllModes();" style="justify-content:center">Çıkmak
+            için <b>Esc</b></div>
     </div>
     <div id="calc-mode" class="overlay">
         <div class="tool-panel" style="text-align:center">
@@ -629,6 +676,73 @@
         </div>
         <div class="exit-info" onclick="closeAllModes()" style="justify-content:center">Çıkmak için <b>Esc</b></div>
     </div>
+    <div id="weather-mode" class="overlay">
+        <div class="weather-dashboard">
+            <!-- Header: Location & Status -->
+            <div class="w-header">
+                <div>
+                    <div class="w-subtitle">Mevcut Konum</div>
+                    <div class="w-location" id="wLocation">Konum Bulunuyor...</div>
+                </div>
+                <div class="w-status-badge" id="wStatusBadge">⏳ Yükleniyor</div>
+            </div>
+
+            <!-- Main Current Weather Layout -->
+            <div class="w-main-grid">
+                <!-- Left: Big indicator -->
+                <div class="w-current-box glass-card">
+                    <div id="wIcon" class="w-big-icon pulse-anim">⏳</div>
+                    <div id="wTemp" class="w-big-temp">--°</div>
+                    <div id="wDesc" class="w-big-desc">Bilgi Bekleniyor...</div>
+                </div>
+
+                <!-- Right: 3 metrics on top of each other -->
+                <div class="w-metrics-grid">
+                    <div class="w-metric-card glass-card">
+                        <div class="m-icon-box" style="background: rgba(59,130,246,0.15); color: #60a5fa;">☔</div>
+                        <div class="m-info">
+                            <div class="m-lbl">Yağış İhtimali</div>
+                            <div class="m-val" id="wRain">--%</div>
+                        </div>
+                    </div>
+                    <div class="w-metric-card glass-card">
+                        <div class="m-icon-box" style="background: rgba(16,185,129,0.15); color: #34d399;">💧</div>
+                        <div class="m-info">
+                            <div class="m-lbl">Nem Oranı</div>
+                            <div class="m-val" id="wHumid">--%</div>
+                        </div>
+                    </div>
+                    <div class="w-metric-card glass-card">
+                        <div class="m-icon-box" style="background: rgba(244,114,182,0.15); color: #f472b6;">🌬️</div>
+                        <div class="m-info">
+                            <div class="m-lbl">Rüzgar Hızı</div>
+                            <div class="m-val" id="wWind">-- km/s</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom: Forecasts Tab -->
+            <div class="w-forecast-section">
+                <!-- Hourly scroll -->
+                <div class="w-section-title">⏰ 24 Saatlik Tahmin</div>
+                <div class="weather-hourly-scroll glass-card" id="wHourlyList">
+                    <!-- JS injected -->
+                    <div class="w-loading-text">Yükleniyor...</div>
+                </div>
+
+                <!-- Daily list -->
+                <div class="w-section-title" style="margin-top: 24px;">📅 Haftalık Tahmin</div>
+                <div class="w-daily-grid glass-card" id="wDailyList">
+                    <!-- JS injected -->
+                    <div class="w-loading-text">Yükleniyor...</div>
+                </div>
+            </div>
+
+            <div id="wError" class="w-error-msg" style="display:none;">⚠️ Hava durumu bilgisi servisten alınamadı.</div>
+        </div>
+        <div class="exit-info" onclick="closeAllModes()" style="justify-content:center">Çıkmak için <b>Esc</b></div>
+    </div>
     <div id="paste-mode" class="overlay">
         <div class="tool-panel" style="text-align:center">
             <div class="tool-panel-title">📋 Metin / Kod Paylaş</div>
@@ -670,10 +784,16 @@
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/crypto-js@4.2.0/crypto-js.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/crypto-js@4.2.0/crypto-js.min.js"></script>
     <script src="script.js?v=2.5"></script>
+
+    <!-- Scroll to Top Button -->
+    <button id="scrollTopBtn" onclick="window.scrollTo({top: 0, behavior: 'smooth'})" title="Yukarı Çık">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path>
+        </svg>
+    </button>
 </body>
 
 
 </html>
-
-
