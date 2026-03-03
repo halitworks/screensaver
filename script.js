@@ -261,6 +261,7 @@ document.addEventListener('contextmenu', function (e) {
 
 function openOverlay(id) {
     document.getElementById(id).style.display = 'flex';
+    document.body.classList.add('no-scroll');
     if (id === 'browser-test-mode') updateDeviceList();
 }
 
@@ -269,6 +270,7 @@ function closeAllModes() {
     document.querySelectorAll('.overlay').forEach(function (e) {
         e.style.display = 'none';
     });
+    document.body.classList.remove('no-scroll');
     document.getElementById('speedFrame').src = '';
     var lk = document.getElementById('last-key-display');
     if (lk) lk.innerText = '';
@@ -1799,9 +1801,41 @@ function startQrScanner(facing) {
         function () {
             // Error - ignore (scanning continues)
         }
-    ).catch(function (err) {
+    ).then(function () {
+        qrTorchState = false;
+        let tBtn = document.getElementById('qrTorchBtn');
+        if (tBtn) {
+            tBtn.innerHTML = '🔦 Feneri Aç';
+            tBtn.className = 'tp-btn ghost';
+            tBtn.style.display = facing === 'environment' ? 'block' : 'none';
+        }
+    }).catch(function (err) {
         document.getElementById('qr-reader').innerHTML = '<div style="padding:30px;color:rgba(255,255,255,0.5);font-size:13px">Kamera erişimi reddedildi veya desteklenmiyor.<br><b>Not: iOS cihazlarda HTTPS ile bağlanmalısınız.</b><br><br>Hata: ' + err + '</div>';
     });
+}
+
+let qrTorchState = false;
+function toggleQrTorch() {
+    if (!qrScanner || qrCurrentFacing !== 'environment') return;
+    qrTorchState = !qrTorchState;
+    if (qrScanner.applyVideoConstraints) {
+        qrScanner.applyVideoConstraints({ advanced: [{ torch: qrTorchState }] }).then(() => {
+            let btn = document.getElementById('qrTorchBtn');
+            if (qrTorchState) {
+                btn.innerHTML = '🔦 Feneri Kapat';
+                btn.className = 'tp-btn accent';
+            } else {
+                btn.innerHTML = '🔦 Feneri Aç';
+                btn.className = 'tp-btn ghost';
+            }
+        }).catch(err => {
+            qrTorchState = !qrTorchState;
+            showToast('Fener desteklenmiyor / açılamadı');
+        });
+    } else {
+        qrTorchState = !qrTorchState;
+        showToast('Fener özelliği bu tarayıcıda kullanılamıyor.');
+    }
 }
 
 function switchQrCamera(facing) {
@@ -1927,6 +1961,8 @@ function stopQrScanner() {
         }
     }
     qrScanResults = [];
+    let tBtn = document.getElementById('qrTorchBtn');
+    if (tBtn) tBtn.style.display = 'none';
 }
 
 // ========== BENCHMARK ==========
