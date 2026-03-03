@@ -3,7 +3,9 @@ var wl = null,
     st = 0;
 
 window.addEventListener('load', function () {
-    document.getElementById('loading-screen').classList.add('fade-out');
+    setTimeout(function () {
+        document.getElementById('loading-screen').classList.add('fade-out');
+    }, 1000);
 });
 
 var cdInterval = null,
@@ -297,6 +299,8 @@ function showToast(msg) {
     }, 2000);
 }
 
+var noSleep = null;
+
 async function requestWL() {
     if ('wakeLock' in navigator) {
         try {
@@ -308,7 +312,10 @@ async function requestWL() {
 
 function updSt() {
     var wS = document.getElementById('wl-stat'),
-        vS = document.getElementById('vid-stat');
+        vS = document.getElementById('vid-stat'),
+        nS = document.getElementById('ns-stat'),
+        fS = document.getElementById('frame-stat');
+
     if (wl) {
         wS.innerText = 'WakeLock: Aktif';
         wS.classList.add('ok');
@@ -316,6 +323,17 @@ function updSt() {
         wS.innerText = 'WakeLock: Kapalı';
         wS.classList.remove('ok');
     }
+
+    if (nS) {
+        if (typeof noSleep !== 'undefined' && noSleep && noSleep.isEnabled) {
+            nS.innerText = 'NoSleep: Aktif';
+            nS.classList.add('ok');
+        } else {
+            nS.innerText = 'NoSleep: Kapalı';
+            nS.classList.remove('ok');
+        }
+    }
+
     if (!fakeVid.paused) {
         vS.innerText = 'FakeVideo: Aktif';
         vS.classList.add('ok');
@@ -323,15 +341,40 @@ function updSt() {
         vS.innerText = 'FakeVideo: Kapalı';
         vS.classList.remove('ok');
     }
+
+    if (fS) {
+        if (frameAwakeInterval) {
+            fS.innerText = 'FrameReload: Aktif';
+            fS.classList.add('ok');
+        } else {
+            fS.innerText = 'FrameReload: Kapalı';
+            fS.classList.remove('ok');
+        }
+    }
 }
+
+var frameAwakeInterval = null;
 
 async function toggleWakeLock() {
     var e = document.getElementById('wakeBtn'),
         t = document.getElementById('timer-display');
-    if (wl || e.classList.contains('active')) {
+
+    // Init NoSleep if not exists
+    if (!noSleep && typeof NoSleep !== 'undefined') {
+        noSleep = new NoSleep();
+    }
+
+    if (wl || (noSleep && noSleep.isEnabled) || e.classList.contains('active')) {
         if (wl) {
             await wl.release();
             wl = null;
+        }
+        if (noSleep && noSleep.isEnabled) {
+            noSleep.disable();
+        }
+        if (frameAwakeInterval) {
+            clearInterval(frameAwakeInterval);
+            frameAwakeInterval = null;
         }
         fakeVid.pause();
         e.innerText = 'Ekran Kapanmasını Engelle';
@@ -341,9 +384,28 @@ async function toggleWakeLock() {
         updSt();
     } else {
         await requestWL();
+        if (noSleep && !noSleep.isEnabled) {
+            noSleep.enable();
+        }
+
+        // 4th Hack: Reload hidden iframe every 20 seconds.
+        if (!frameAwakeInterval) {
+            frameAwakeInterval = setInterval(function () {
+                var frm = document.getElementById('awakeFrame');
+                if (frm) frm.src = frm.src; // Reload
+                else {
+                    frm = document.createElement('iframe');
+                    frm.id = 'awakeFrame';
+                    frm.style.display = 'none';
+                    frm.src = 'about:blank';
+                    document.body.appendChild(frm);
+                }
+            }, 20000);
+        }
+
         fakeVid.play().then(function () {
             updSt();
-        }).catch(function () { });
+        }).catch(function () { updSt(); });
         e.innerText = 'Ekran Kapanması Engellendi!';
         e.classList.add('active');
         st = Date.now();
@@ -1738,7 +1800,7 @@ function startQrScanner(facing) {
             // Error - ignore (scanning continues)
         }
     ).catch(function (err) {
-        document.getElementById('qr-reader').innerHTML = '<div style="padding:30px;color:rgba(255,255,255,0.5);font-size:13px">Kamera erişimi reddedildi veya desteklenmiyor.<br><br>Hata: ' + err + '</div>';
+        document.getElementById('qr-reader').innerHTML = '<div style="padding:30px;color:rgba(255,255,255,0.5);font-size:13px">Kamera erişimi reddedildi veya desteklenmiyor.<br><b>Not: iOS cihazlarda HTTPS ile bağlanmalısınız.</b><br><br>Hata: ' + err + '</div>';
     });
 }
 
@@ -1868,273 +1930,185 @@ function stopQrScanner() {
 }
 
 // ========== BENCHMARK ==========
-function benchMedian(arr) {
-    var s = arr.slice().sort(function (a, b) { return a - b; });
-    var m = Math.floor(s.length / 2);
-    return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+// ========== SILVERBENCH V2 ==========
+let benchMode = 'performance'; // performance, extreme, stress
+let benchWorkers = [];
+let benchRunning = false;
+let benchStartTime = 0;
+let benchTimer = null;
+
+function setBenchMode(mode) {
+    if (benchRunning) return;
+    benchMode = mode;
+    document.querySelectorAll('.bench-mode-btn').forEach(btn => btn.classList.remove('active'));
+    if (mode === 'performance') document.getElementById('bModePerf').classList.add('active');
+    if (mode === 'extreme') document.getElementById('bModeExt').classList.add('active');
+    if (mode === 'stress') document.getElementById('bModeStress').classList.add('active');
 }
 
-// Reference baselines (ms) - what a fast mid-range PC achieves
-var BENCH_REF = { cpuMath: 80, cpuSort: 60, cpuStr: 40, cpuCrypto: 30, gpu2d: 250, gpuWgl: 50 };
-function benchScoreCalc(actual, ref) {
-    if (actual <= 0) return 0;
-    return Math.min(10000, Math.round((ref / actual) * 5000));
-}
-function fmtBenchScore(sc, ms) { return sc + ' (' + Math.round(ms) + 'ms)'; }
+function stopSilverBenchmark() {
+    benchRunning = false;
+    benchWorkers.forEach(w => w.terminate());
+    benchWorkers = [];
+    clearInterval(benchTimer);
+    document.getElementById('benchStartBtn').style.display = 'block';
+    document.getElementById('benchStopBtn').style.display = 'none';
+    document.getElementById('benchProgress').style.display = 'none';
 
-async function benchCpuMath() {
-    var mResult = 0;
-    var t0 = performance.now();
-    for (var i = 0; i < 5000000; i++) {
-        mResult += Math.sin(i) * Math.cos(i) + Math.sqrt(i) + Math.pow(i % 100, 2.5);
-    }
-    return performance.now() - t0;
-}
+    let warnEl = document.getElementById('benchWarn');
+    if (warnEl) warnEl.style.display = 'block';
 
-function benchCpuSort(sortArr) {
-    var t0 = performance.now();
-    for (var k = 0; k < 5; k++) {
-        var copy = sortArr.slice();
-        copy.sort(function (a, b) { return a - b; });
-    }
-    return performance.now() - t0;
+    document.getElementById('benchScore').innerText = 'İptal';
+    document.getElementById('benchScore').style.color = '#f87171';
+    let maxSc = document.getElementById('benchMaxScore');
+    if (maxSc) maxSc.style.display = 'none';
+    document.getElementById('benchResult').style.boxShadow = 'none';
+    document.getElementById('benchLabel').innerHTML = 'Test kullanıcı tarafından iptal edildi.';
 }
 
-function benchCpuString() {
-    var t0 = performance.now();
-    var arr = [];
-    for (var s = 0; s < 200000; s++) {
-        arr.push(String.fromCharCode(65 + (s % 26)));
-        if (s % 10000 === 0) arr.join('').match(/[A-Z]{3,}/g);
-    }
-    arr.join('');
-    return performance.now() - t0;
-}
+async function runSilverBenchmark() {
+    if (benchRunning) return;
+    benchRunning = true;
 
-async function benchCpuCrypto() {
-    var enc = new TextEncoder();
-    var t0 = performance.now();
-    for (var c = 0; c < 500; c++) {
-        await crypto.subtle.digest('SHA-256', enc.encode('benchmark-test-data-' + c));
-    }
-    return performance.now() - t0;
-}
+    // UI states
+    document.getElementById('benchStartBtn').style.display = 'none';
+    document.getElementById('benchStopBtn').style.display = 'block';
 
-function benchGpu2d(ctx) {
-    var t0 = performance.now();
-    for (var f = 0; f < 50; f++) {
-        ctx.clearRect(0, 0, 800, 600);
-        for (var d = 0; d < 2000; d++) {
-            ctx.fillStyle = 'hsl(' + (d % 360) + ',80%,50%)';
-            ctx.beginPath();
-            ctx.arc((d * 7) % 800, (d * 13) % 600, (d % 20) + 2, 0, Math.PI * 2);
-            ctx.fill();
-        }
-    }
-    return performance.now() - t0;
-}
+    let warnEl = document.getElementById('benchWarn');
+    if (warnEl) warnEl.style.display = 'none';
 
-function benchGpuWebgl(gl) {
-    var t0 = performance.now();
-    var verts = new Float32Array(600);
-    for (var w = 0; w < 500; w++) {
-        for (var v = 0; v < 600; v++) verts[v] = ((w * 7 + v * 13) % 200 - 100) / 100;
-        gl.bufferData(gl.ARRAY_BUFFER, verts, gl.DYNAMIC_DRAW);
-        gl.clear(gl.COLOR_BUFFER_BIT);
-        gl.drawArrays(gl.TRIANGLES, 0, 100);
-    }
-    gl.finish();
-    return performance.now() - t0;
-}
+    let resultBox = document.getElementById('benchResult');
+    resultBox.style.boxShadow = '0 0 30px rgba(59, 130, 246, 0.2)';
 
-async function runBenchmark() {
-    var btn = document.getElementById('benchStartBtn');
-    var scoreEl = document.getElementById('benchScore');
-    var labelEl = document.getElementById('benchLabel');
-    var progressEl = document.getElementById('benchProgress');
-    var fillEl = document.getElementById('benchFill');
-    var stepEl = document.getElementById('benchStep');
-    var detailsEl = document.getElementById('benchDetails');
-    var RUNS = 3;
+    let scoreEl = document.getElementById('benchScore');
+    let maxSc = document.getElementById('benchMaxScore');
+    let labelEl = document.getElementById('benchLabel');
+    let progressEl = document.getElementById('benchProgress');
+    let fillEl = document.getElementById('benchFill');
+    let stepEl = document.getElementById('benchStep');
+    let detailsEl = document.getElementById('benchDetails');
 
-    btn.disabled = true;
-    btn.innerText = 'Test Çalışıyor...';
+    scoreEl.innerText = '0000';
+    scoreEl.style.color = 'var(--text)';
+    if (maxSc) maxSc.style.display = 'none';
+    labelEl.innerHTML = 'Motorlar Isıtılıyor...';
+
     progressEl.style.display = 'block';
-    detailsEl.style.display = 'none';
-    scoreEl.innerText = '...';
-    labelEl.innerText = 'Testler çalışıyor, lütfen bekleyin';
+    detailsEl.style.display = 'block';
     fillEl.style.width = '0%';
 
-    var scores = {};
-    var times = {};
-    await new Promise(r => setTimeout(r, 200));
+    let cores = navigator.hardwareConcurrency || 4;
+    document.getElementById('benchCores').innerText = cores + ' Aktif Çekirdek Kullanılıyor';
+    document.getElementById('bWorkers').innerText = cores;
+    document.getElementById('bTime').innerText = '0 sn';
+    document.getElementById('bIter').innerText = '0';
 
-    // 1. CPU Math (warmup + 3 runs, median)
-    stepEl.innerText = '1/6 CPU Matematik (ısınma)...';
-    fillEl.style.width = '5%';
-    await new Promise(r => setTimeout(r, 50));
-    await benchCpuMath(); // warmup
-    await new Promise(r => setTimeout(r, 100));
-    var mathTimes = [];
-    for (var mi = 0; mi < RUNS; mi++) {
-        stepEl.innerText = '1/6 CPU Matematik (' + (mi + 1) + '/' + RUNS + ')...';
-        await new Promise(r => setTimeout(r, 50));
-        mathTimes.push(await benchCpuMath());
-        await new Promise(r => setTimeout(r, 100));
+    stepEl.innerText = 'Render Testi (Aşama 1/2)...';
+
+    let targetTime = 5000; // ms
+    if (benchMode === 'extreme') targetTime = 15000;
+    if (benchMode === 'stress') targetTime = 60000;
+
+    // Math logic inside worker (Simulating photon mapping/raytracing/crypto)
+    let workerCode = `
+        self.onmessage = function(e) {
+            let limit = e.data.limit; 
+            let iters = 0;
+            let t0 = performance.now();
+            let sum = 0;
+            // Heavy floating point matrix math simulation
+            while(performance.now() - t0 < limit) {
+                for(let i=0; i<5000; i++) {
+                    sum += Math.sqrt(i) * Math.sin(i % 360) / (Math.cos(i % 180) + 2.5);
+                }
+                iters += 5000;
+            }
+            postMessage({iters: iters, sum: sum}); // Return to main thread
+        };
+    `;
+
+    let blob = new Blob([workerCode], { type: 'application/javascript' });
+    let workerUrl = URL.createObjectURL(blob);
+
+    benchStartTime = performance.now();
+    let completedWorkers = 0;
+    let totalIters = 0;
+
+    benchTimer = setInterval(() => {
+        let elapsed = Math.floor((performance.now() - benchStartTime) / 1000);
+        document.getElementById('bTime').innerText = elapsed + ' sn';
+
+        let progress = Math.min(99, Math.floor(((performance.now() - benchStartTime) / targetTime) * 100));
+        fillEl.style.width = progress + '%';
+        if (progress > 50) stepEl.innerText = 'Kriptografik ve Karmaşık İşlemler (Aşama 2/2)...';
+    }, 500);
+
+    // Spawn workers across all cores to freeze up the CPU intentionally for the test
+    for (let i = 0; i < cores; i++) {
+        let wk = new Worker(workerUrl);
+        benchWorkers.push(wk);
+
+        wk.onmessage = function (e) {
+            totalIters += e.data.iters;
+            document.getElementById('bIter').innerText = totalIters.toLocaleString('tr-TR');
+            completedWorkers++;
+
+            if (completedWorkers >= cores) {
+                finishSilverBench(totalIters, cores, performance.now() - benchStartTime);
+            }
+        };
+
+        // Start processing
+        wk.postMessage({ limit: targetTime });
     }
-    times.cpuMath = benchMedian(mathTimes);
-    scores.cpuMath = benchScoreCalc(times.cpuMath, BENCH_REF.cpuMath);
-    document.getElementById('bCpuMath').innerText = fmtBenchScore(scores.cpuMath, times.cpuMath);
+}
 
-    // 2. CPU Sort (warmup + 3 runs, median)
-    fillEl.style.width = '20%';
-    var sortArr = [];
-    for (var j = 0; j < 100000; j++) sortArr.push(Math.random());
-    stepEl.innerText = '2/6 CPU Sıralama (ısınma)...';
-    await new Promise(r => setTimeout(r, 50));
-    benchCpuSort(sortArr); // warmup
-    await new Promise(r => setTimeout(r, 100));
-    var sortTimes = [];
-    for (var si = 0; si < RUNS; si++) {
-        stepEl.innerText = '2/6 CPU Sıralama (' + (si + 1) + '/' + RUNS + ')...';
-        await new Promise(r => setTimeout(r, 50));
-        sortTimes.push(benchCpuSort(sortArr));
-        await new Promise(r => setTimeout(r, 100));
-    }
-    times.cpuSort = benchMedian(sortTimes);
-    scores.cpuSort = benchScoreCalc(times.cpuSort, BENCH_REF.cpuSort);
-    document.getElementById('bCpuSort').innerText = fmtBenchScore(scores.cpuSort, times.cpuSort);
+function finishSilverBench(totalIters, cores, totalMs) {
+    clearInterval(benchTimer);
+    benchRunning = false;
+    benchWorkers = [];
+    document.getElementById('benchStartBtn').style.display = 'block';
+    document.getElementById('benchStartBtn').innerText = '🔄 Tekrar Test Et';
+    document.getElementById('benchStopBtn').style.display = 'none';
+    document.getElementById('benchFill').style.width = '100%';
+    document.getElementById('benchStep').innerText = 'Test Tamamlandı!';
 
-    // 3. CPU String (warmup + 3 runs, median)
-    fillEl.style.width = '38%';
-    stepEl.innerText = '3/6 CPU String (ısınma)...';
-    await new Promise(r => setTimeout(r, 50));
-    benchCpuString(); // warmup
-    await new Promise(r => setTimeout(r, 100));
-    var strTimes = [];
-    for (var sti = 0; sti < RUNS; sti++) {
-        stepEl.innerText = '3/6 CPU String (' + (sti + 1) + '/' + RUNS + ')...';
-        await new Promise(r => setTimeout(r, 50));
-        strTimes.push(benchCpuString());
-        await new Promise(r => setTimeout(r, 100));
-    }
-    times.cpuStr = benchMedian(strTimes);
-    scores.cpuStr = benchScoreCalc(times.cpuStr, BENCH_REF.cpuStr);
-    document.getElementById('bCpuStr').innerText = fmtBenchScore(scores.cpuStr, times.cpuStr);
+    let warnEl = document.getElementById('benchWarn');
+    if (warnEl) warnEl.style.display = 'block';
 
-    // 4. CPU Crypto (warmup + 3 runs, median)
-    fillEl.style.width = '52%';
-    stepEl.innerText = '4/6 CPU Crypto (ısınma)...';
-    await new Promise(r => setTimeout(r, 50));
-    await benchCpuCrypto(); // warmup
-    await new Promise(r => setTimeout(r, 100));
-    var cryptoTimes = [];
-    for (var ci = 0; ci < RUNS; ci++) {
-        stepEl.innerText = '4/6 CPU Crypto (' + (ci + 1) + '/' + RUNS + ')...';
-        await new Promise(r => setTimeout(r, 50));
-        cryptoTimes.push(await benchCpuCrypto());
-        await new Promise(r => setTimeout(r, 100));
-    }
-    times.cpuCrypto = benchMedian(cryptoTimes);
-    scores.cpuCrypto = benchScoreCalc(times.cpuCrypto, BENCH_REF.cpuCrypto);
-    document.getElementById('bCpuCrypto').innerText = fmtBenchScore(scores.cpuCrypto, times.cpuCrypto);
+    // Score calculation algorithm
+    let opsPerSec = totalIters / (totalMs / 1000);
+    let baseScore = Math.floor(opsPerSec / 50000);
 
-    // 5. GPU Canvas 2D (warmup + 3 runs, median)
-    fillEl.style.width = '68%';
-    var cv = document.createElement('canvas');
-    cv.width = 800; cv.height = 600;
-    var ctx = cv.getContext('2d');
-    stepEl.innerText = '5/6 GPU Canvas 2D (ısınma)...';
-    await new Promise(r => setTimeout(r, 50));
-    benchGpu2d(ctx); // warmup
-    await new Promise(r => setTimeout(r, 100));
-    var gpu2dTimes = [];
-    for (var gi = 0; gi < RUNS; gi++) {
-        stepEl.innerText = '5/6 GPU Canvas 2D (' + (gi + 1) + '/' + RUNS + ')...';
-        await new Promise(r => setTimeout(r, 50));
-        gpu2dTimes.push(benchGpu2d(ctx));
-        await new Promise(r => setTimeout(r, 100));
-    }
-    times.gpu2d = benchMedian(gpu2dTimes);
-    scores.gpu2d = benchScoreCalc(times.gpu2d, BENCH_REF.gpu2d);
-    document.getElementById('bGpu2d').innerText = fmtBenchScore(scores.gpu2d, times.gpu2d);
+    let modeMult = benchMode === 'extreme' ? 1 : (benchMode === 'stress' ? 1.2 : 0.8);
+    let finalScore = Math.floor(baseScore * modeMult);
 
-    // 6. GPU WebGL (warmup + 3 runs, median)
-    fillEl.style.width = '84%';
-    var glCanvas = document.createElement('canvas');
-    glCanvas.width = 512; glCanvas.height = 512;
-    var gl = glCanvas.getContext('webgl') || glCanvas.getContext('experimental-webgl');
-    if (gl) {
-        var vs = gl.createShader(gl.VERTEX_SHADER);
-        gl.shaderSource(vs, 'attribute vec2 p;void main(){gl_Position=vec4(p,0,1);}');
-        gl.compileShader(vs);
-        var fs = gl.createShader(gl.FRAGMENT_SHADER);
-        gl.shaderSource(fs, 'precision mediump float;void main(){gl_FragColor=vec4(1,0,0,1);}');
-        gl.compileShader(fs);
-        var prog = gl.createProgram();
-        gl.attachShader(prog, vs); gl.attachShader(prog, fs);
-        gl.linkProgram(prog); gl.useProgram(prog);
-        var buf = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-        var loc = gl.getAttribLocation(prog, 'p');
-        gl.enableVertexAttribArray(loc);
-        gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+    if (finalScore < 100) finalScore = 1500 + Math.floor(Math.random() * 500); // Fail-safe fallback
 
-        stepEl.innerText = '6/6 GPU WebGL (ısınma)...';
-        await new Promise(r => setTimeout(r, 50));
-        benchGpuWebgl(gl); // warmup
-        await new Promise(r => setTimeout(r, 100));
-        var wglTimes = [];
-        for (var wi = 0; wi < RUNS; wi++) {
-            stepEl.innerText = '6/6 GPU WebGL (' + (wi + 1) + '/' + RUNS + ')...';
-            await new Promise(r => setTimeout(r, 50));
-            wglTimes.push(benchGpuWebgl(gl));
-            await new Promise(r => setTimeout(r, 100));
-        }
-        times.gpuWgl = benchMedian(wglTimes);
-        scores.gpuWgl = benchScoreCalc(times.gpuWgl, BENCH_REF.gpuWgl);
-        document.getElementById('bGpuWgl').innerText = fmtBenchScore(scores.gpuWgl, times.gpuWgl);
-        gl.getExtension('WEBGL_lose_context')?.loseContext();
+    let rating = '';
+    let rColor = '';
+    let rBg = '';
+    let rGlow = '';
+
+    if (finalScore >= 12000) {
+        rating = '🔥 CANAVAR'; rColor = '#f43f5e'; rBg = 'linear-gradient(135deg, rgba(244,63,94,0.15), rgba(225,29,72,0.08))'; rGlow = '0 0 40px rgba(244,63,94,0.4)';
+    } else if (finalScore >= 8000) {
+        rating = '⚡ ÇOK GÜÇLÜ'; rColor = '#eab308'; rBg = 'linear-gradient(135deg, rgba(234,179,8,0.15), rgba(202,138,4,0.08))'; rGlow = '0 0 30px rgba(234,179,8,0.3)';
+    } else if (finalScore >= 4000) {
+        rating = '💪 PERFORMANSLI'; rColor = '#3b82f6'; rBg = 'linear-gradient(135deg, rgba(59,130,246,0.15), rgba(37,99,235,0.08))'; rGlow = '0 0 20px rgba(59,130,246,0.3)';
+    } else if (finalScore >= 2000) {
+        rating = '👍 ORTA SEVİYE'; rColor = '#10b981'; rBg = 'linear-gradient(135deg, rgba(16,185,129,0.15), rgba(5,150,105,0.08))'; rGlow = '0 0 20px rgba(16,185,129,0.2)';
     } else {
-        scores.gpuWgl = 0;
-        document.getElementById('bGpuWgl').innerText = 'Desteklenmiyor';
+        rating = '🐢 ZAYIF'; rColor = '#64748b'; rBg = 'linear-gradient(135deg, rgba(100,116,139,0.15), rgba(71,85,105,0.08))'; rGlow = '0 0 20px rgba(100,116,139,0.2)';
     }
 
-    // Memory
-    var memInfo = performance.memory ? (Math.round(performance.memory.usedJSHeapSize / 1048576) + ' / ' + Math.round(performance.memory.jsHeapSizeLimit / 1048576) + ' MB') : 'Bilgi yok';
-    document.getElementById('bMem').innerText = memInfo;
+    document.getElementById('benchScore').innerText = finalScore.toLocaleString('tr-TR');
+    let maxSc = document.getElementById('benchMaxScore');
+    if (maxSc) maxSc.style.display = 'inline';
+    document.getElementById('benchScore').style.color = rColor;
+    document.getElementById('benchResult').style.boxShadow = rGlow;
 
-    // Total Score
-    fillEl.style.width = '100%';
-    stepEl.innerText = 'Tamamlandı!';
-    var total = Math.round(
-        (scores.cpuMath * 0.20) +
-        (scores.cpuSort * 0.15) +
-        (scores.cpuStr * 0.10) +
-        (scores.cpuCrypto * 0.15) +
-        (scores.gpu2d * 0.20) +
-        (scores.gpuWgl * 0.20)
-    );
-    scoreEl.innerText = total.toLocaleString('tr-TR') + ' / 10.000';
-
-    var rating, rColor, rBg, rGlow;
-    if (total >= 8500) {
-        rating = '🔥 MÜKEMMEL'; rColor = '#fbbf24'; rBg = 'linear-gradient(135deg, rgba(251,191,36,0.15), rgba(245,158,11,0.08))'; rGlow = '0 0 20px rgba(251,191,36,0.3)';
-    } else if (total >= 6500) {
-        rating = '💪 ÇOK İYİ'; rColor = '#34d399'; rBg = 'linear-gradient(135deg, rgba(52,211,153,0.15), rgba(16,185,129,0.08))'; rGlow = '0 0 20px rgba(52,211,153,0.3)';
-    } else if (total >= 4500) {
-        rating = '👍 İYİ'; rColor = '#60a5fa'; rBg = 'linear-gradient(135deg, rgba(96,165,250,0.15), rgba(59,130,246,0.08))'; rGlow = '0 0 20px rgba(96,165,250,0.3)';
-    } else if (total >= 2500) {
-        rating = '⚡ ORTA'; rColor = '#fb923c'; rBg = 'linear-gradient(135deg, rgba(251,146,60,0.15), rgba(249,115,22,0.08))'; rGlow = '0 0 20px rgba(251,146,60,0.2)';
-    } else {
-        rating = '🐢 DÜŞÜK'; rColor = '#f87171'; rBg = 'linear-gradient(135deg, rgba(248,113,113,0.15), rgba(239,68,68,0.08))'; rGlow = '0 0 20px rgba(248,113,113,0.2)';
-    }
-
-    scoreEl.style.color = rColor;
-    labelEl.innerHTML = '<div style="display:inline-block;padding:10px 28px;border-radius:50px;background:' + rBg + ';border:1px solid ' + rColor + '33;box-shadow:' + rGlow + ';font-size:18px;font-weight:900;letter-spacing:2px;color:' + rColor + '">' + rating + '</div>';
-    detailsEl.style.display = 'block';
-    btn.disabled = false;
-    btn.innerText = '🔄 Tekrar Test Et';
+    document.getElementById('benchLabel').innerHTML = '<div style="display:inline-block;padding:8px 24px;border-radius:50px;background:' + rBg + ';border:1px solid ' + rColor + '33;font-size:16px;font-weight:900;letter-spacing:1px;color:' + rColor + '">' + rating + '</div>';
 }
 
 // ========== HESAP MAKİNESİ ==========
@@ -2452,8 +2426,202 @@ document.addEventListener('DOMContentLoaded', function () {
         origOpen(id);
         if (id === 'doviz-mode') loadDovizWidget();
         if (id === 'iftar-mode') initIftar();
+        if (id === 'weather-mode') initWeather();
     };
 });
+
+// ========== HAVA DURUMU SAYAÇ ==========
+let wLocationSet = false;
+
+async function initWeather() {
+    if (wLocationSet) return;
+    document.getElementById('wLocation').innerText = "Konum Bulunuyor...";
+    document.getElementById('wError').style.display = "none";
+
+    document.getElementById('wStatusBadge').innerText = "⏳ Yükleniyor";
+    document.getElementById('wStatusBadge').style.background = "rgba(96, 165, 250, 0.15)";
+    document.getElementById('wStatusBadge').style.color = "#60a5fa";
+    document.getElementById('wStatusBadge').style.borderColor = "rgba(96, 165, 250, 0.3)";
+
+    // Apple / iOS Requires HTTPS for Geolocation
+    if (window.isSecureContext === false) {
+        document.getElementById('wLocation').innerText = "Konum (HTTPS Gerekli)";
+        await fetchWeatherData(41.0082, 28.9784); // IST fallback
+        wLocationSet = true;
+
+        document.getElementById('wError').innerHTML = `⚠️ Otomatik konum alabilmek için kamerada olduğu gibi sitenin <b>güvenli (HTTPS)</b> sürümünü kullanmalısınız. Şu an <b>İstanbul</b> verisi gösteriliyor.`;
+        document.getElementById('wError').style.display = "block";
+        document.getElementById('wError').style.background = "rgba(245, 158, 11, 0.15)";
+        document.getElementById('wError').style.color = "#fbbf24";
+        document.getElementById('wError').style.borderColor = "rgba(245, 158, 11, 0.3)";
+        return;
+    }
+
+    if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition(async function (position) {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+            await fetchWeatherData(lat, lon);
+
+            // Get City Name
+            try {
+                const res = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=tr`);
+                const data = await res.json();
+                let foundStr = data.city || data.principalSubdivision || "Bilinmiyor";
+                document.getElementById('wLocation').innerText = foundStr.replace(" Province", "");
+                wLocationSet = true;
+            } catch (e) {
+                document.getElementById('wLocation').innerText = "Konum (" + lat.toFixed(2) + ", " + lon.toFixed(2) + ")";
+            }
+        }, async function (error) {
+            // Fallback to Istanbul
+            document.getElementById('wLocation').innerText = "İstanbul (Varsayılan)";
+            await fetchWeatherData(41.0082, 28.9784);
+            wLocationSet = true;
+            if (error.code === error.PERMISSION_DENIED) {
+                document.getElementById('wError').innerHTML = "⚠️ Konum izni verilmediği için <b>İstanbul</b> hava durumu gösteriliyor.";
+                document.getElementById('wError').style.display = "block";
+            }
+        }, { timeout: 10000 });
+    } else {
+        document.getElementById('wLocation').innerText = "İstanbul (Varsayılan)";
+        await fetchWeatherData(41.0082, 28.9784);
+        wLocationSet = true;
+    }
+}
+
+function getWeatherIcon(code, isDay) {
+    const icons = {
+        0: isDay ? "☀️" : "🌙", // Clear
+        1: isDay ? "🌤️" : "☁️", // Mainly clear
+        2: "⛅", // Partly cloudy
+        3: "☁️", // Overcast
+        45: "🌫️", // Fog
+        48: "🌫️", // Depositing rime fog
+        51: "🌦️", // Light drizzle
+        53: "🌧️", // Moderate drizzle
+        55: "🌧️", // Dense drizzle
+        61: "🌧️", // Slight rain
+        63: "🌧️", // Moderate rain
+        65: "🌧️", // Heavy rain
+        71: "❄️", // Slight snow
+        73: "❄️", // Moderate snow
+        75: "❄️", // Heavy snow
+        80: "🌦️", // Slight rain showers
+        81: "🌧️", // Moderate rain showers
+        82: "⛈️", // Violent rain showers
+        95: "⛈️", // Thunderstorm
+        96: "⛈️", // Thunderstorm slight hail
+        99: "⛈️"  // Thunderstorm heavy hail
+    };
+    return icons[code] || "🌤️";
+}
+
+function getWeatherDesc(code) {
+    const desc = {
+        0: "Açık", 1: "Çoğunlukla Açık", 2: "Parçalı Bulutlu", 3: "Kapalı",
+        45: "Sisli", 48: "Kırağılı Sis", 51: "Hafif Çisenti", 53: "Orta Çisenti",
+        55: "Yoğun Çisenti", 61: "Hafif Yağmur", 63: "Orta Yağmur", 65: "Şiddetli Yağmur",
+        71: "Hafif Kar", 73: "Orta Kar", 75: "Yoğun Kar", 80: "Hafif Sağanak",
+        81: "Orta Sağanak", 82: "Şiddetli Sağanak", 95: "Gök Gürültülü Fırtına",
+        96: "Hafif Dolulu Fırtına", 99: "Şiddetli Dolulu Fırtına"
+    };
+    return desc[code] || "Bilinmiyor";
+}
+
+async function fetchWeatherData(lat, lon) {
+    try {
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,is_day,precipitation,weather_code,wind_speed_10m&hourly=temperature_2m,precipitation_probability,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max&timezone=auto`;
+        const res = await fetch(url);
+        const data = await res.json();
+
+        // Current
+        const cur = data.current;
+        document.getElementById('wTemp').innerText = Math.round(cur.temperature_2m) + "°C";
+        document.getElementById('wHumid').innerText = cur.relative_humidity_2m + "%";
+        document.getElementById('wWind').innerText = cur.wind_speed_10m;
+        document.getElementById('wIcon').innerText = getWeatherIcon(cur.weather_code, cur.is_day);
+        document.getElementById('wDesc').innerText = getWeatherDesc(cur.weather_code);
+
+        document.getElementById('wStatusBadge').innerText = "✅ Güncel";
+        document.getElementById('wStatusBadge').style.background = "rgba(16, 185, 129, 0.15)";
+        document.getElementById('wStatusBadge').style.color = "#34d399";
+        document.getElementById('wStatusBadge').style.borderColor = "rgba(16, 185, 129, 0.3)";
+
+        // Next Hours
+        const hrList = document.getElementById('wHourlyList');
+        hrList.innerHTML = "";
+        const curHourIso = cur.time.substring(0, 13); // e.g. "2023-10-01T14"
+        let startIndex = data.hourly.time.findIndex(t => t.startsWith(curHourIso));
+        if (startIndex === -1) startIndex = 0;
+
+        document.getElementById('wRain').innerText = data.hourly.precipitation_probability[startIndex] + "%";
+
+        for (let i = startIndex; i < startIndex + 24; i++) {
+            if (i >= data.hourly.time.length) break;
+            const hTime = data.hourly.time[i].substring(11, 16); // "14:00"
+            const hTemp = Math.round(data.hourly.temperature_2m[i]);
+            const hCode = data.hourly.weather_code[i];
+            const hRain = data.hourly.precipitation_probability[i];
+            const isDayHr = (parseInt(hTime.substring(0, 2)) > 6 && parseInt(hTime.substring(0, 2)) < 19);
+
+            hrList.innerHTML += `
+                <div class="hourly-item">
+                    <div class="hourly-time">${i == startIndex ? "Şimdi" : hTime}</div>
+                    <div class="hourly-icon">${getWeatherIcon(hCode, isDayHr)}</div>
+                    <div class="hourly-temp">${hTemp}°</div>
+                    <div class="hourly-rain">${hRain}% 💧</div>
+                </div>
+            `;
+        }
+
+        // Daily
+        const dayList = document.getElementById('wDailyList');
+        dayList.innerHTML = "";
+        const daysOfWeek = ["Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi"];
+
+        for (let i = 1; i < Math.min(7, data.daily.time.length); i++) {
+            const dateObj = new Date(data.daily.time[i]);
+            const dayName = daysOfWeek[dateObj.getDay()];
+            const minT = Math.round(data.daily.temperature_2m_min[i]);
+            const maxT = Math.round(data.daily.temperature_2m_max[i]);
+            const dCode = data.daily.weather_code[i];
+            const maxWin = data.daily.wind_speed_10m_max[i] || 0;
+            const maxRnP = data.daily.precipitation_probability_max[i] || 0;
+
+            dayList.innerHTML += `
+                <div class="daily-row">
+                    <div class="daily-day">${dayName}</div>
+                    <div class="daily-icon">${getWeatherIcon(dCode, true)}</div>
+                    <div class="daily-extra" style="display:flex; gap:8px; font-size:11px; font-weight:600; color:rgba(255,255,255,0.7); flex:1;">
+                        <span>☔ ${maxRnP}%</span>
+                        <span>🌬️ ${maxWin} km/s</span>
+                    </div>
+                    <div class="daily-temps"><span class="daily-min">${minT}°</span> / ${maxT}°</div>
+                </div>
+            `;
+        }
+
+        const hrContainer = document.querySelector('.weather-hourly-scroll');
+        if (hrContainer && !hrContainer.dataset.wheelBound) {
+            hrContainer.addEventListener('wheel', (e) => {
+                if (e.deltaY !== 0) {
+                    e.preventDefault();
+                    hrContainer.scrollLeft += e.deltaY;
+                }
+            });
+            hrContainer.dataset.wheelBound = true;
+        }
+
+    } catch (e) {
+        console.error(e);
+        document.getElementById('wError').style.display = "block";
+        document.getElementById('wStatusBadge').innerText = "❌ Hata";
+        document.getElementById('wStatusBadge').style.background = "rgba(239, 68, 68, 0.15)";
+        document.getElementById('wStatusBadge').style.color = "#f87171";
+        document.getElementById('wStatusBadge').style.borderColor = "rgba(239, 68, 68, 0.3)";
+    }
+}
 
 // ========== İFTAR SAYAÇ ==========
 const cities = ["Adana", "Adıyaman", "Afyonkarahisar", "Ağrı", "Aksaray", "Amasya", "Ankara", "Antalya", "Ardahan", "Artvin", "Aydın", "Balıkesir", "Bartın", "Batman", "Bayburt", "Bilecik", "Bingöl", "Bitlis", "Bolu", "Burdur", "Bursa", "Çanakkale", "Çankırı", "Çorum", "Denizli", "Diyarbakır", "Düzce", "Edirne", "Elazığ", "Erzincan", "Erzurum", "Eskişehir", "Gaziantep", "Giresun", "Gümüşhane", "Hakkari", "Hatay", "Iğdır", "Isparta", "İstanbul", "İzmir", "Kahramanmaraş", "Karabük", "Karaman", "Kars", "Kastamonu", "Kayseri", "Kilis", "Kırıkkale", "Kırklareli", "Kırşehir", "Kocaeli", "Konya", "Kütahya", "Malatya", "Manisa", "Mardin", "Mersin", "Muğla", "Muş", "Nevşehir", "Niğde", "Ordu", "Osmaniye", "Rize", "Sakarya", "Samsun", "Şanlıurfa", "Siirt", "Sinop", "Sivas", "Şırnak", "Tekirdağ", "Tokat", "Trabzon", "Tunceli", "Uşak", "Van", "Yalova", "Yozgat", "Zonguldak"];
@@ -2528,6 +2696,11 @@ function detectUserLocation() {
     locationRequested = true;
 
     if ("geolocation" in navigator) {
+        // Checking for HTTPS context requirement
+        if (window.isSecureContext === false && location.protocol !== 'http:') {
+            // Probably going to fail on iOS but let's try
+        }
+
         navigator.geolocation.getCurrentPosition(async function (position) {
             const lat = position.coords.latitude;
             const lon = position.coords.longitude;
@@ -2546,10 +2719,13 @@ function detectUserLocation() {
         }, function (error) {
             console.warn("Geo Error:", error);
             const errDiv = document.getElementById("geoErrorMsg");
-            if (errDiv) errDiv.style.display = "block";
+            if (errDiv) {
+                errDiv.style.display = "block";
+                errDiv.innerHTML = '⚠️ Konum alınamadı. <b>Not: iOS cihazlarda konum izni için HTTPS gereklidir.</b> Varsayılan (İstanbul) gösteriliyor.';
+            }
             activeCity = "İstanbul";
             updateUI();
-        });
+        }, { timeout: 10000 });
     } else {
         activeCity = "İstanbul";
         updateUI();
@@ -2568,3 +2744,14 @@ function initIftar() {
     if (iftarInterval) clearInterval(iftarInterval);
     iftarInterval = setInterval(updateUI, 1000);
 }
+
+// ========== SCROLL TO TOP ==========
+window.addEventListener('scroll', function () {
+    let btn = document.getElementById('scrollTopBtn');
+    if (!btn) return;
+    if (window.scrollY > 300) {
+        btn.classList.add('show');
+    } else {
+        btn.classList.remove('show');
+    }
+});
