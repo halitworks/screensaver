@@ -8,7 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
         rel="stylesheet">
     <link rel="icon" type="image/png" href="icon.png">
-    <link rel="stylesheet" href="style.css?v=1.4">
+    <link rel="stylesheet" href="style.css?v=1.5">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/nosleep/0.12.0/NoSleep.min.js"></script>
 </head>
 
@@ -131,15 +131,17 @@
             type="video/mp4">
     </video>
     <div id="test-mode" class="overlay">
-        <div class="keyboard-wrapper">
-            <div class="keyboard-grid" id="mainKb"></div>
-            <div class="nav-grid">
-                <div class="keyboard-grid" id="midKb"></div>
-                <div class="keyboard-grid" id="arrowKb"></div>
+        <div style="margin: auto 0; display: flex; flex-direction: column; align-items: center; width: 100%;">
+            <div class="keyboard-wrapper" style="margin: 0;">
+                <div class="keyboard-grid" id="mainKb"></div>
+                <div class="nav-grid">
+                    <div class="keyboard-grid" id="midKb"></div>
+                    <div class="keyboard-grid" id="arrowKb"></div>
+                </div>
+                <div class="numpad-grid" id="numKb"></div>
             </div>
-            <div class="numpad-grid" id="numKb"></div>
-        </div>
-        <div class="win-note">*Test sırasında yalnızca Windows (Meta) tuşuna basıldığında tarayıcıdan çıkılmaktadır.
+            <div class="win-note">*Test sırasında yalnızca Windows (Meta) tuşuna basıldığında tarayıcıdan çıkılmaktadır.
+            </div>
         </div>
         <div class="exit-info">
             <div class="reset-btn" onclick="resetTest()">Sıfırla <b>Ctrl+X</b></div>
@@ -147,10 +149,12 @@
         </div>
     </div>
     <div id="clean-mode" class="overlay">
-        <h1 class="clean-header">TEMİZLİK MODU</h1>
-        <p style="opacity:0.5;font-weight:500">Girişler Engellendi</p>
-        <div id="last-key-display"></div>
-        <div class="win-note">*Meta, güç ve özel tuşlar engellenemez.</div>
+        <div style="margin: auto; text-align: center; width: 100%;">
+            <h1 class="clean-header">TEMİZLİK MODU</h1>
+            <p style="opacity:0.5;font-weight:500;margin:0;">Girişler Engellendi</p>
+            <div id="last-key-display"></div>
+            <div class="win-note" style="margin: 15px auto 0;">*Meta, güç ve özel tuşlar engellenemez.</div>
+        </div>
         <div class="exit-info" onclick="closeAllModes()">Çıkmak için <b>Esc</b></div>
     </div>
     <div id="speed-mode" class="overlay"><iframe id="speedFrame" class="speed-iframe"></iframe>
@@ -515,6 +519,8 @@
                     <button class="tp-btn ghost" id="camFrontBtn" onclick="switchQrCamera('user')" style="width:100%">🤳
                         Ön Kamera</button>
                 </div>
+                <button class="tp-btn ghost" id="qrTorchBtn" onclick="toggleQrTorch()"
+                    style="width:100%; margin-top:10px; display:none;">🔦 Feneri Aç</button>
             </div>
             <div id="qr-reader"
                 style="width:100%;max-width:400px;margin:0 auto 16px;border-radius:14px;overflow:hidden"></div>
@@ -797,4 +803,3 @@
 
 
 </html>
-
