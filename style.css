@@ -1553,6 +1553,18 @@
             transform: translateX(1.6em);
         }
 
+        /* Password Generator Base Layout */
+        .pw-panel {
+            max-width: 500px;
+            padding: 30px;
+        }
+
+        .pw-options-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
         /* ========== RESPONSIVE ========== */
 
         /* Tablet */
@@ -1795,9 +1807,12 @@
 
             /* Modern PW Options Grid */
             .pw-options-grid {
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                gap: 12px;
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+
+            .pw-panel {
+                padding: 24px 16px !important;
             }
 
             .pw-options-grid .pw-modern-check {
