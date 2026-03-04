@@ -87,7 +87,10 @@
                     class="icon">⚡</span><span class="label">Hız Testi</span><span class="desc">İnternet hız
                     ölçümü</span></button><button class="tool-btn" onclick="openOverlay('benchmark-mode')"><span
                     class="icon">🏋️</span><span class="label">Benchmark</span><span class="desc">CPU Performans
-                    testi</span></button></div>
+                    testi</span></button><button class="tool-btn"
+                onclick="openOverlay('leaderboard-mode');renderLeaderboard()"><span class="icon">🏆</span><span
+                    class="label">Skor Tablosu</span><span class="desc">Top 10 Burn-in
+                    Sonuçları</span></button></div>
         <div class="cat-header blue">🖥️ Kullanıcı Destek</div>
         <div class="tool-grid"><button class="tool-btn" onclick="openOverlay('browser-test-mode')"><span
                     class="icon">🎥</span><span class="label">Tarayıcı Testi</span><span class="desc">Kamera · Mikrofon
@@ -719,6 +722,35 @@
             Çıkmak
             için <b>Esc</b></div>
     </div>
+    <div id="leaderboard-mode" class="overlay">
+        <div class="tool-panel lb-panel">
+            <div class="tool-panel-title">🏆 Benchmark Skor Tablosu</div>
+            <div class="tool-panel-sub">Sadece Stress (Burn-in · 60sn) modundaki sonuçlar</div>
+
+            <div id="lbEmpty" class="lb-empty" style="display:none;">
+                <div style="font-size:48px;margin-bottom:12px;">📊</div>
+                <div style="font-weight:700;font-size:16px;color:rgba(255,255,255,0.6);">Henüz kayıtlı skor yok</div>
+                <div style="font-size:13px;color:rgba(255,255,255,0.35);margin-top:6px;">Benchmark sayfasından <b>Stress
+                        (Burn-in)</b> testini çalıştırın</div>
+            </div>
+
+            <div id="lbTableWrap" class="lb-table-wrap">
+                <table class="lb-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Puan</th>
+                            <th>Cihaz</th>
+                            <th>Çekirdek</th>
+                            <th>Tarih</th>
+                        </tr>
+                    </thead>
+                    <tbody id="lbBody"></tbody>
+                </table>
+            </div>
+        </div>
+        <div class="exit-info" onclick="closeAllModes()" style="justify-content:center">Çıkmak için <b>Esc</b></div>
+    </div>
     <div id="calc-mode" class="overlay">
         <div class="tool-panel" style="text-align:center">
             <div class="tool-panel-title">🧮 Hesap Makinesi</div>
@@ -900,7 +932,25 @@
     <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/crypto-js@4.2.0/crypto-js.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/crypto-js@4.2.0/crypto-js.min.js"></script>
-    <script src="script.js?v=2.9"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+    <script>
+        // ========== FIREBASE CONFIG ==========
+        // Firebase projenizin ayarlarını buraya yapıştırın
+        var firebaseConfig = {
+            apiKey: "AIzaSyA3dMACj9Hcpv_WFgvcDICaGP9biD7S59o",
+            authDomain: "colinstool.firebaseapp.com",
+            databaseURL: "https://colinstool-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "colinstool",
+            storageBucket: "colinstool.firebasestorage.app",
+            messagingSenderId: "951471107913",
+            appId: "1:951471107913:web:26abcd7810c7776c993498",
+            measurementId: "G-8P2ZNY0GJP"
+        };
+        firebase.initializeApp(firebaseConfig);
+        var fbDB = firebase.database();
+    </script>
+    <script src="script.js?v=3.0"></script>
 
     <!-- Scroll to Top Button -->
     <button id="scrollTopBtn" onclick="window.scrollTo({top: 0, behavior: 'smooth'})" title="Yukarı Çık">
