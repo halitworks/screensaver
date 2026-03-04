@@ -1613,7 +1613,7 @@ function copyPw() {
         pwResult.style.borderColor = 'var(--success)';
         setTimeout(() => {
             pwResult.style.transform = '';
-            pwResult.style.borderColor = '';
+            pwResult.style.borderColor = 'rgba(255,255,255,0.1)';
         }, 150);
 
         document.getElementById('pwCopyNote').innerText = 'Kopyalandı! ✓';
