@@ -1309,6 +1309,7 @@
 
         .status-panel {
             display: flex;
+            flex-wrap: wrap;
             gap: 12px;
             font-size: 10px;
             font-weight: 600;
