@@ -2291,6 +2291,156 @@ function finishSilverBench(totalIters, cores, totalMs) {
     document.getElementById('benchResult').style.boxShadow = rGlow;
 
     document.getElementById('benchLabel').innerHTML = '<div style="display:inline-block;padding:8px 24px;border-radius:50px;background:' + rBg + ';border:1px solid ' + rColor + '33;font-size:16px;font-weight:900;letter-spacing:1px;color:' + rColor + '">' + rating + '</div>';
+
+    // Auto-save to leaderboard if Stress (Burn-in) mode
+    if (benchMode === 'stress') {
+        saveBenchScore(finalScore, cores);
+    }
+}
+
+// ========== LEADERBOARD (Firebase) ==========
+function detectDevice() {
+    var ua = navigator.userAgent || '';
+    var platform = navigator.platform || '';
+
+    // Check mobile first
+    if (/iPhone|iPad|iPod/i.test(ua)) return { name: 'iOS', icon: '📱', cls: 'ios' };
+    if (/Android/i.test(ua)) return { name: 'Android', icon: '📱', cls: 'android' };
+
+    // Desktop OS
+    if (/Win/i.test(platform) || /Windows/i.test(ua)) return { name: 'Windows', icon: '🖥️', cls: 'windows' };
+    if (/Mac/i.test(platform) && !/iPhone|iPad/i.test(ua)) return { name: 'macOS', icon: '🍎', cls: 'mac' };
+    if (/Linux/i.test(platform) || /Linux/i.test(ua)) return { name: 'Linux', icon: '🐧', cls: 'linux' };
+
+    return { name: 'Diğer', icon: '💻', cls: 'other' };
+}
+
+function saveBenchScore(score, cores) {
+    var device = detectDevice();
+    var now = new Date();
+    var entry = {
+        score: score,
+        device: device.name,
+        deviceIcon: device.icon,
+        deviceCls: device.cls,
+        cores: cores,
+        date: now.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+        time: now.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
+        timestamp: now.getTime()
+    };
+
+    // Push to Firebase
+    fbDB.ref('leaderboard').push(entry).then(function () {
+        // After saving, prune to keep only top 10
+        pruneLeaderboard();
+    }).catch(function (err) {
+        console.error('Firebase kayıt hatası:', err);
+        showToast('Skor kaydedilemedi!');
+    });
+}
+
+function pruneLeaderboard() {
+    // Get all entries, sort by score desc, keep only top 10, delete the rest
+    fbDB.ref('leaderboard').orderByChild('score').once('value').then(function (snapshot) {
+        var entries = [];
+        snapshot.forEach(function (child) {
+            entries.push({ key: child.key, score: child.val().score });
+        });
+
+        // Sort descending
+        entries.sort(function (a, b) { return b.score - a.score; });
+
+        // Delete everything after top 10
+        if (entries.length > 10) {
+            var toDelete = entries.slice(10);
+            var updates = {};
+            toDelete.forEach(function (e) {
+                updates[e.key] = null;
+            });
+            fbDB.ref('leaderboard').update(updates);
+        }
+    });
+}
+
+function renderLeaderboard() {
+    var tbody = document.getElementById('lbBody');
+    var emptyEl = document.getElementById('lbEmpty');
+    var tableWrap = document.getElementById('lbTableWrap');
+
+    // Show loading state
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:30px;color:rgba(255,255,255,0.4);">⏳ Yükleniyor...</td></tr>';
+    emptyEl.style.display = 'none';
+    tableWrap.style.display = 'block';
+
+    // Timeout: 10 saniye sonra hala cevap gelmezse hata göster
+    var timedOut = false;
+    var timeoutId = setTimeout(function () {
+        timedOut = true;
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:30px;color:#f87171;font-size:13px;">' +
+            '❌ Firebase bağlantısı zaman aşımına uğradı.<br>' +
+            '<span style="color:rgba(255,255,255,0.4);font-size:12px;">Firebase Console → Realtime Database oluşturulduğundan<br>ve kuralların "test mode" olduğundan emin olun.</span></td></tr>';
+    }, 10000);
+
+    fbDB.ref('leaderboard').orderByChild('score').once('value').then(function (snapshot) {
+        if (timedOut) return; // Zaten timeout olduysa işlem yapma
+        clearTimeout(timeoutId);
+
+        var list = [];
+        snapshot.forEach(function (child) {
+            list.push(child.val());
+        });
+
+        // Sort descending (Firebase orderByChild is ascending)
+        list.sort(function (a, b) { return b.score - a.score; });
+        list = list.slice(0, 10);
+
+        if (!list.length) {
+            emptyEl.style.display = 'block';
+            tableWrap.style.display = 'none';
+            return;
+        }
+
+        var medals = ['🥇', '🥈', '🥉'];
+
+        tbody.innerHTML = list.map(function (entry, i) {
+            var rankClass = (i < 3) ? 'lb-rank-' + (i + 1) : 'lb-rank-other';
+            var rankContent = (i < 3) ? medals[i] : (i + 1);
+
+            // Score color based on rating
+            var sColor = '#64748b';
+            if (entry.score >= 12000) sColor = '#f43f5e';
+            else if (entry.score >= 8000) sColor = '#eab308';
+            else if (entry.score >= 4000) sColor = '#3b82f6';
+            else if (entry.score >= 2000) sColor = '#10b981';
+
+            return '<tr>' +
+                '<td><span class="lb-rank-badge ' + rankClass + '">' + rankContent + '</span></td>' +
+                '<td><span class="lb-score" style="color:' + sColor + '">' + entry.score.toLocaleString('tr-TR') + '</span></td>' +
+                '<td><span class="lb-device-badge lb-device-' + entry.deviceCls + '">' + entry.deviceIcon + ' ' + entry.device + '</span></td>' +
+                '<td>' + entry.cores + ' Çekirdek</td>' +
+                '<td><span class="lb-date">' + entry.date + ' · ' + entry.time + '</span></td>' +
+                '</tr>';
+        }).join('');
+    }).catch(function (err) {
+        if (timedOut) return;
+        clearTimeout(timeoutId);
+        console.error('Firebase okuma hatası:', err);
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:30px;color:#f87171;font-size:13px;">' +
+            '❌ Veriler yüklenemedi<br>' +
+            '<span style="color:rgba(255,255,255,0.4);font-size:12px;">Hata: ' + err.message + '</span></td></tr>';
+    });
+}
+
+function clearLeaderboard() {
+    if (confirm('Tüm skor kayıtları silinecek. Emin misiniz?')) {
+        fbDB.ref('leaderboard').remove().then(function () {
+            renderLeaderboard();
+            showToast('Skor tablosu temizlendi!');
+        }).catch(function (err) {
+            console.error('Firebase silme hatası:', err);
+            showToast('Silme başarısız!');
+        });
+    }
 }
 
 // ========== HESAP MAKİNESİ ==========
