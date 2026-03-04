@@ -262,6 +262,7 @@ document.addEventListener('contextmenu', function (e) {
 function openOverlay(id) {
     document.getElementById(id).style.display = 'flex';
     document.body.classList.add('no-scroll');
+    if (document.getElementById('scrollTopBtn')) document.getElementById('scrollTopBtn').classList.remove('show');
     if (id === 'browser-test-mode') updateDeviceList();
 }
 
@@ -1766,11 +1767,9 @@ function startQrScanner(facing) {
 
     qrScanner = new Html5Qrcode('qr-reader');
     qrScanner.start(
-        { facingMode: facing },
+        { facingMode: facing, width: { ideal: 1280 }, height: { ideal: 720 } },
         {
-            fps: 10,
-            qrbox: { width: 250, height: 250 },
-            aspectRatio: 1.0,
+            fps: 30,
             formatsToSupport: [
                 Html5QrcodeSupportedFormats.QR_CODE,
                 Html5QrcodeSupportedFormats.EAN_13,
@@ -1869,11 +1868,9 @@ function startQrScannerKeepResults(facing) {
     document.getElementById('qr-reader').innerHTML = '';
     qrScanner = new Html5Qrcode('qr-reader');
     qrScanner.start(
-        { facingMode: facing },
+        { facingMode: facing, width: { ideal: 1280 }, height: { ideal: 720 } },
         {
-            fps: 10,
-            qrbox: { width: 250, height: 250 },
-            aspectRatio: 1.0,
+            fps: 30,
             formatsToSupport: [
                 Html5QrcodeSupportedFormats.QR_CODE,
                 Html5QrcodeSupportedFormats.EAN_13,
@@ -1901,7 +1898,15 @@ function startQrScannerKeepResults(facing) {
             }
         },
         function () { }
-    ).catch(function (err) {
+    ).then(function () {
+        qrTorchState = false;
+        let tBtn = document.getElementById('qrTorchBtn');
+        if (tBtn) {
+            tBtn.innerHTML = '🔦 Feneri Aç';
+            tBtn.className = 'tp-btn ghost';
+            tBtn.style.display = facing === 'environment' ? 'block' : 'none';
+        }
+    }).catch(function (err) {
         document.getElementById('qr-reader').innerHTML = '<div style="padding:30px;color:rgba(255,255,255,0.5);font-size:13px">Kamera değiştirilemedi.<br><br>Hata: ' + err + '</div>';
     });
 }
@@ -1930,7 +1935,8 @@ function updateQrResultsList() {
         return;
     }
     if (countEl) countEl.innerText = qrScanResults.length + ' kod okundu';
-    listEl.innerHTML = qrScanResults.map(function (r, i) {
+    listEl.innerHTML = [...qrScanResults].reverse().map(function (r, revIdx) {
+        var i = qrScanResults.length - 1 - revIdx;
         var isUrl = r.text.match(/^https?:\/\//i);
         var openBtnHtml = isUrl ? '<button class="tp-btn success" onclick="window.open(\'' + r.text.replace(/'/g, "\\'") + '\',\'_blank\')" style="padding:6px 10px;font-size:11px;margin-left:4px">🔗</button>' : '';
         return '<div class="tp-card" style="text-align:left;margin-bottom:8px;word-break:break-all;animation:fadeIn 0.3s ease">' +
@@ -1943,8 +1949,8 @@ function updateQrResultsList() {
             '<div style="font-size:14px;font-weight:600;color:var(--success)">' + r.text + '</div>' +
             '</div>';
     }).join('');
-    // Auto scroll to bottom
-    listEl.scrollTop = listEl.scrollHeight;
+    // Auto scroll to top
+    listEl.scrollTop = 0;
 }
 
 function stopQrScanner() {
@@ -2785,7 +2791,7 @@ function initIftar() {
 window.addEventListener('scroll', function () {
     let btn = document.getElementById('scrollTopBtn');
     if (!btn) return;
-    if (window.scrollY > 300) {
+    if (window.scrollY > 300 && !document.body.classList.contains('no-scroll')) {
         btn.classList.add('show');
     } else {
         btn.classList.remove('show');
