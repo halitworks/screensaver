@@ -2563,3 +2563,261 @@
             visibility: visible;
             transform: translateY(0);
         }
+
+        /* ========== LEADERBOARD ========== */
+        .lb-panel {
+            max-width: 650px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .lb-empty {
+            padding: 40px 20px;
+            text-align: center;
+        }
+
+        .lb-table-wrap {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            background: rgba(0, 0, 0, 0.2);
+            margin-bottom: 16px;
+        }
+
+        .lb-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+            min-width: 420px;
+        }
+
+        .lb-table thead th {
+            padding: 14px 12px;
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            color: rgba(255, 255, 255, 0.45);
+            background: rgba(255, 255, 255, 0.03);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            text-align: left;
+            white-space: nowrap;
+        }
+
+        .lb-table thead th:first-child {
+            text-align: center;
+            width: 50px;
+        }
+
+        .lb-table tbody tr {
+            transition: background 0.2s;
+        }
+
+        .lb-table tbody tr:hover {
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .lb-table tbody tr:not(:last-child) td {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .lb-table tbody td {
+            padding: 12px;
+            color: rgba(255, 255, 255, 0.8);
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .lb-table tbody td:first-child {
+            text-align: center;
+        }
+
+        .lb-rank-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 30px;
+            height: 30px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 900;
+        }
+
+        .lb-rank-1 {
+            background: linear-gradient(135deg, rgba(251, 191, 36, 0.25), rgba(245, 158, 11, 0.1));
+            color: #fbbf24;
+            border: 1px solid rgba(251, 191, 36, 0.4);
+            box-shadow: 0 0 12px rgba(251, 191, 36, 0.2);
+        }
+
+        .lb-rank-2 {
+            background: linear-gradient(135deg, rgba(192, 192, 192, 0.2), rgba(148, 163, 184, 0.1));
+            color: #cbd5e1;
+            border: 1px solid rgba(203, 213, 225, 0.3);
+        }
+
+        .lb-rank-3 {
+            background: linear-gradient(135deg, rgba(205, 127, 50, 0.2), rgba(180, 100, 30, 0.1));
+            color: #d97706;
+            border: 1px solid rgba(217, 119, 6, 0.3);
+        }
+
+        .lb-rank-other {
+            color: rgba(255, 255, 255, 0.35);
+            font-size: 13px;
+        }
+
+        .lb-score {
+            font-family: monospace;
+            font-size: 16px;
+            font-weight: 900;
+            letter-spacing: 0.5px;
+        }
+
+        .lb-device-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .lb-device-windows {
+            background: rgba(59, 130, 246, 0.15);
+            color: #60a5fa;
+            border: 1px solid rgba(59, 130, 246, 0.25);
+        }
+
+        .lb-device-linux {
+            background: rgba(251, 191, 36, 0.15);
+            color: #fbbf24;
+            border: 1px solid rgba(251, 191, 36, 0.25);
+        }
+
+        .lb-device-mac {
+            background: rgba(168, 162, 158, 0.15);
+            color: #d6d3d1;
+            border: 1px solid rgba(168, 162, 158, 0.25);
+        }
+
+        .lb-device-android {
+            background: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.25);
+        }
+
+        .lb-device-ios {
+            background: rgba(139, 92, 246, 0.15);
+            color: #a78bfa;
+            border: 1px solid rgba(139, 92, 246, 0.25);
+        }
+
+        .lb-device-other {
+            background: rgba(100, 116, 139, 0.15);
+            color: #94a3b8;
+            border: 1px solid rgba(100, 116, 139, 0.25);
+        }
+
+        .lb-date {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .lb-actions {
+            margin-top: 12px;
+        }
+
+        /* Leaderboard mobile card layout */
+        @media (max-width: 520px) {
+            .lb-panel {
+                padding: 20px 14px !important;
+            }
+
+            .lb-table-wrap {
+                border: none;
+                background: none;
+                overflow-y: auto;
+                max-height: 65vh;
+                padding-right: 4px;
+            }
+
+            .lb-table,
+            .lb-table thead,
+            .lb-table tbody,
+            .lb-table th,
+            .lb-table td,
+            .lb-table tr {
+                display: block;
+            }
+
+            .lb-table thead {
+                display: none;
+            }
+
+            .lb-table {
+                min-width: unset;
+            }
+
+            .lb-table tbody tr {
+                background: linear-gradient(135deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01));
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                border-radius: 16px;
+                padding: 16px;
+                margin-bottom: 10px;
+                display: flex;
+                flex-wrap: wrap;
+                align-items: center;
+                gap: 8px;
+                position: relative;
+                backdrop-filter: blur(10px);
+            }
+
+            .lb-table tbody tr:first-child {
+                border-color: rgba(251, 191, 36, 0.25);
+                background: linear-gradient(135deg, rgba(251, 191, 36, 0.08), rgba(255, 255, 255, 0.02));
+            }
+
+            .lb-table tbody td {
+                padding: 0;
+                white-space: normal;
+            }
+
+            /* Rank badge */
+            .lb-table tbody td:first-child {
+                flex-shrink: 0;
+            }
+
+            /* Score */
+            .lb-table tbody td:nth-child(2) {
+                font-size: 20px;
+                flex: 1;
+            }
+
+            /* Device badge */
+            .lb-table tbody td:nth-child(3) {
+                flex-shrink: 0;
+            }
+
+            /* Cores - new row */
+            .lb-table tbody td:nth-child(4) {
+                width: 100%;
+                font-size: 11px;
+                color: rgba(255, 255, 255, 0.35);
+                border-top: 1px solid rgba(255, 255, 255, 0.05);
+                padding-top: 8px;
+                margin-top: 4px;
+            }
+
+            /* Date - inline with cores */
+            .lb-table tbody td:nth-child(5) {
+                display: none;
+            }
+
+            /* Show date inside cores cell via JS - or combine */
+            .lb-table tbody td:nth-child(4)::before {
+                content: '⚙️ ';
+            }
+        }
