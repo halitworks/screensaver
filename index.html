@@ -411,7 +411,7 @@
     </div>
 
     <div id="password-mode" class="overlay">
-        <div class="tool-panel" style="max-width: 500px; padding: 30px;">
+        <div class="tool-panel pw-panel">
             <div class="tool-panel-title">🔑 Gelişmiş Şifre Üretici</div>
             <div class="tool-panel-sub" style="margin-bottom: 24px;">Yeni nesil, güvenli ve kırılamaz şifreler
                 oluşturun</div>
@@ -452,8 +452,7 @@
                 <input type="range" class="tp-range" id="pwLen" min="4" max="128" value="16"
                     oninput="document.getElementById('pwLenVal').textContent=this.value" style="margin-bottom: 24px;">
 
-                <div class="pw-options-grid" id="pwOpts"
-                    style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div class="pw-options-grid" id="pwOpts">
                     <div class="pw-modern-check checked" data-chars="abcdefghijklmnopqrstuvwxyz">
                         <label class="pw-switch">
                             <input id="cb-opt1" type="checkbox" checked onchange="togglePwOpt(this)">
