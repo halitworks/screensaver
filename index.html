@@ -8,15 +8,18 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
         rel="stylesheet">
     <link rel="icon" type="image/png" href="icon.png">
-    <link rel="stylesheet" href="style.css?v=1.5">
+    <link rel="stylesheet" href="style.css?v=1.9">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/nosleep/0.12.0/NoSleep.min.js"></script>
 </head>
 
 <body>
     <nav class="site-nav" id="siteNav">
         <div class="nav-inner">
-            <img src="icon.png" alt="" class="nav-logo">
-            <span class="nav-title">Colin's IT Tool v1.9</span>
+            <div style="display: flex; align-items: center; cursor: pointer;"
+                onclick="closeAllModes(); window.scrollTo({top: 0, behavior: 'smooth'})" title="Anasayfaya Dön">
+                <img src="icon.png" alt="" class="nav-logo">
+                <span class="nav-title">Colin's IT Tool v1.9</span>
+            </div>
             <div class="nav-search-wrap">
                 <input type="text" class="nav-search" id="toolSearch" placeholder="🔍 Araç ara..."
                     oninput="filterTools(this.value)">
@@ -27,23 +30,46 @@
         <div class="loading-text">Yükleniyor</div>
     </div>
     <div class="main-menu">
-        <button class="wake-lock-btn" id="wakeBtn" onclick="toggleWakeLock()">Ekran Kapanmasını Engelle</button>
-        <div id="timer-display" style="text-align:center">Aktif Süre: 00:00:00</div>
-        <div class="status-panel" style="justify-content:center">
-            <div id="wl-stat" class="status-item">WakeLock: Kapalı</div>
-            <div id="vid-stat" class="status-item">FakeVideo: Kapalı</div>
-            <div id="ns-stat" class="status-item">NoSleep: Kapalı</div>
-            <div id="frame-stat" class="status-item">FrameReload: Kapalı</div>
+        <div class="wakelock-card"
+            style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 16px; padding: 24px 20px 10px; margin-bottom: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.2);">
+            <div style="display: flex; justify-content: center; margin-bottom: -55px;">
+                <label class="switch">
+                    <input type="checkbox" id="wakeBtnCheck" onchange="toggleWakeLock()">
+                    <div class="button">
+                        <div class="light"></div>
+                        <div class="dots"></div>
+                        <div class="characters"></div>
+                        <div class="shine"></div>
+                        <div class="shadow"></div>
+                    </div>
+                </label>
+            </div>
+            <div id="wakeLockText"
+                style="text-align:center; font-weight:bold; margin-top:0px; margin-bottom: 16px; font-size:18px;">Ekran
+                Kapanmasını Engelle</div>
+            <div id="timer-display"
+                style="text-align:center; margin-bottom: 12px; font-weight: 500; color: rgba(255,255,255,0.8);">Aktif
+                Süre: 00:00:00</div>
+            <div class="status-panel" style="justify-content:center; margin-bottom: 16px;">
+                <div id="wl-stat" class="status-item">WakeLock: Kapalı</div>
+                <div id="vid-stat" class="status-item">FakeVideo: Kapalı</div>
+                <div id="ns-stat" class="status-item">NoSleep: Kapalı</div>
+                <div id="frame-stat" class="status-item">FrameReload: Kapalı</div>
+            </div>
+            <div class="info-note" style="color:rgba(255,255,255,0.45); margin-bottom: 10px;">Uyku modunu önlemek için
+                yukarıdaki anahtarı aktif edin. Tüm işlemler doğrudan tarayıcınızda gerçekleşir. Dosyalarınız hiçbir
+                şekilde internete yüklenmez veya sunucularımıza gönderilmez; tamamen sizin cihazınızda kalır.</div>
         </div>
-        <div class="info-note" style="color:rgba(255,255,255,0.55)">Uyku modunu önlemek için yukarıdaki butonu aktif
-            edin. Tüm araçlar tamamen tarayıcıda
-            çalışır, internete dosya yüklemez.</div>
-        <a href="https://profteknoloji.com/ftp/sp168523.exe" target="_blank" rel="noopener noreferrer" download
-            class="hp-mini-link">HP Support Assistant İndir</a>
-        <a href="https://downloads.dell.com/serviceability/catalog/SupportAssistInstaller.exe" target="_blank"
-            rel="noopener noreferrer" download class="hp-mini-link">Dell Support Assistant İndir</a>
-        <a href="https://profteknoloji.com/ftp/vantage.exe" target="_blank" rel="noopener noreferrer" download
-            class="hp-mini-link">Lenovo Vantage İndir (Microsoft Store)</a>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 20px;">
+            <a href="https://profteknoloji.com/ftp/sp168523.exe" target="_blank" rel="noopener noreferrer" download
+                class="hp-mini-link">HP Support Assistant İndir</a>
+            <a href="https://downloads.dell.com/serviceability/catalog/SupportAssistInstaller.exe" target="_blank"
+                rel="noopener noreferrer" download class="hp-mini-link">Dell Support Assistant İndir</a>
+            <a href="https://profteknoloji.com/ftp/vantage.exe" target="_blank" rel="noopener noreferrer" download
+                class="hp-mini-link">Lenovo Vantage İndir (Microsoft Store)</a>
+            <a href="https://uk.download.nvidia.com/nvapp/client/11.0.6.383/NVIDIA_app_v11.0.6.383.exe" target="_blank"
+                rel="noopener noreferrer" download class="hp-mini-link">NVIDIA App İndir</a>
+        </div>
         <div class="cat-header red">🔧 IT / Sistem Araçları</div>
         <div class="tool-grid"><button class="tool-btn" onclick="openOverlay('ip-mode');loadIPInfo()"><span
                     class="icon">🌐</span><span class="label">IP Bilgisi</span><span class="desc">Public/Local IP ·
@@ -383,32 +409,102 @@
         </div>
         <div class="exit-info" onclick="closeAllModes()" style="justify-content:center">Çıkmak için <b>Esc</b></div>
     </div>
+
     <div id="password-mode" class="overlay">
-        <div class="tool-panel">
-            <div class="tool-panel-title">🔑 Şifre Üretici</div>
-            <div class="tool-panel-sub">Güçlü rastgele şifre — tıklayarak kopyala</div>
-            <div class="pw-result" id="pwResult" onclick="copyPw()">Uret butonuna bas</div><label
-                class="tp-label">Uzunluk: <span id="pwLenVal">16</span></label><input type="range" class="tp-range"
-                id="pwLen" min="4" max="128" value="16"
-                oninput="document.getElementById('pwLenVal').textContent=this.value">
-            <div class="pw-options" id="pwOpts">
-                <div class="pw-checkbox checked" data-chars="abcdefghijklmnopqrstuvwxyz" onclick="togglePwOpt(this)">
-                    <input type="checkbox" checked>a-z
+        <div class="tool-panel" style="max-width: 500px; padding: 30px;">
+            <div class="tool-panel-title">🔑 Gelişmiş Şifre Üretici</div>
+            <div class="tool-panel-sub" style="margin-bottom: 24px;">Yeni nesil, güvenli ve kırılamaz şifreler
+                oluşturun</div>
+
+            <div class="pw-dashboard-card glass-card">
+                <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 12px;">
+                    <span
+                        style="font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px;">Güvenlik
+                        Seviyesi</span>
+                    <span id="pwStrengthLabel"
+                        style="font-size: 14px; font-weight: 900; color: #fbbf24; background: rgba(0,0,0,0.4); padding: 4px 12px; border-radius: 8px;">Bekleniyor...</span>
                 </div>
-                <div class="pw-checkbox checked" data-chars="ABCDEFGHIJKLMNOPQRSTUVWXYZ" onclick="togglePwOpt(this)">
-                    <input type="checkbox" checked>A-Z
+
+                <div id="pwStrengthBar" class="pw-strength-bar"
+                    style="height: 8px; border-radius: 8px; margin-bottom: 24px; background: rgba(0,0,0,0.3); overflow: hidden;">
+                    <div id="pwStrengthFill" class="pw-strength-fill"
+                        style="height: 100%; width: 0%; background: var(--danger); transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1); border-radius: 8px;">
+                    </div>
                 </div>
-                <div class="pw-checkbox checked" data-chars="0123456789" onclick="togglePwOpt(this)"><input
-                        type="checkbox" checked>0-9</div>
-                <div class="pw-checkbox" data-chars="!@#$%^*()-_=+[]{}|;:,./" onclick="togglePwOpt(this)"><input
-                        type="checkbox">!@#$</div>
-                <div class="pw-checkbox" id="pwMantıklı" onclick="toggleMantıklı(this)"> <input type="checkbox">Mantıklı
+
+                <div class="pw-result-box" id="pwResult" onclick="copyPw()"
+                    style="background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 24px 20px; text-align: center; cursor: pointer; transition: 0.3s; position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: center; min-height: 110px;">
+                    <span id="pwResultText"
+                        style="font-size: 28px; font-weight: 900; letter-spacing: 2px; color: #fff; font-family: monospace; word-break: break-all;">Üretiliyor...</span>
+                    <span id="pwCopyNote"
+                        style="font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.3); margin-top: 12px; transition: 0.3s;">📋
+                        Kopyalamak için tıkla</span>
                 </div>
-            </div><button class="tp-btn primary" onclick="generatePassword()" style="width:100%">Üret</button>
-            <div id="pwCopyNote" style="text-align:center;font-size:12px;color:rgba(255,255,255,0.35);margin-top:10px">
             </div>
+
+            <div class="pw-controls-card"
+                style="margin-top: 20px; background: rgba(255,255,255,0.02); border-radius: 20px; padding: 24px; border: 1px solid rgba(255,255,255,0.05);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <label class="tp-label" style="margin: 0; font-size: 14px;">Şifre Uzunluğu</label>
+                    <span id="pwLenVal"
+                        style="font-size: 22px; font-weight: 800; color: var(--accent); font-family: monospace;">16</span>
+                </div>
+                <input type="range" class="tp-range" id="pwLen" min="4" max="128" value="16"
+                    oninput="document.getElementById('pwLenVal').textContent=this.value" style="margin-bottom: 24px;">
+
+                <div class="pw-options-grid" id="pwOpts"
+                    style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div class="pw-modern-check checked" data-chars="abcdefghijklmnopqrstuvwxyz">
+                        <label class="pw-switch">
+                            <input id="cb-opt1" type="checkbox" checked onchange="togglePwOpt(this)">
+                            <span class="slider"></span>
+                        </label>
+                        <span>Küçük Harf (a-z)</span>
+                    </div>
+                    <div class="pw-modern-check checked" data-chars="ABCDEFGHIJKLMNOPQRSTUVWXYZ">
+                        <label class="pw-switch">
+                            <input id="cb-opt2" type="checkbox" checked onchange="togglePwOpt(this)">
+                            <span class="slider"></span>
+                        </label>
+                        <span>Büyük Harf (A-Z)</span>
+                    </div>
+                    <div class="pw-modern-check checked" data-chars="0123456789">
+                        <label class="pw-switch">
+                            <input id="cb-opt3" type="checkbox" checked onchange="togglePwOpt(this)">
+                            <span class="slider"></span>
+                        </label>
+                        <span>Rakamlar (0-9)</span>
+                    </div>
+                    <div class="pw-modern-check checked" data-chars="!@#$%^*()-_=+[]{}|;:,./">
+                        <label class="pw-switch">
+                            <input id="cb-opt4" type="checkbox" checked onchange="togglePwOpt(this)">
+                            <span class="slider"></span>
+                        </label>
+                        <span>Semboller (!@#)</span>
+                    </div>
+                    <div class="pw-modern-check" id="labelBenzer" title="1, l, I, o, O, 0 gibi karakterleri çıkarır">
+                        <label class="pw-switch">
+                            <input id="cb-opt5" type="checkbox" onchange="togglePwOpt(this)">
+                            <span class="slider"></span>
+                        </label>
+                        <span>Benzerleri Çıkar</span>
+                    </div>
+                    <div class="pw-modern-check" id="labelMantıklı">
+                        <label class="pw-switch">
+                            <input id="cb-opt6" type="checkbox" onchange="toggleMantıklı(this)">
+                            <span class="slider"></span>
+                        </label>
+                        <span>Akılda Kalıcı</span>
+                    </div>
+                </div>
+            </div>
+
+            <button class="tp-btn primary" onclick="generatePassword()"
+                style="width:100%; margin-top: 20px; padding: 18px; font-size: 16px; border-radius: 16px; font-weight: 800; letter-spacing: 1px; box-shadow: 0 10px 25px rgba(59, 130, 246, 0.4); transition: 0.3s;">🚀
+                YENİDEN ÜRET</button>
         </div>
-        <div class="exit-info" onclick="closeAllModes()" style="justify-content:center">Çıkmak için <b>Esc</b></div>
+        <div class="exit-info" onclick="closeAllModes()" style="justify-content:center">Çıkmak için <b>Esc</b>
+        </div>
     </div>
     <div id="iftar-mode" class="overlay">
         <div class="tool-panel iftar-panel">
@@ -434,7 +530,8 @@
             <div class="tool-panel-title">⏱️ Zamanlayıcı</div>
             <div class="tool-panel-sub">Geri sayım başlatın</div>
             <div id="cdDisplay"
-                style="font-size:64px;font-weight:900;margin:20px 0;font-family:monospace;color:var(--success)">00:00:00
+                style="font-size:64px;font-weight:900;margin:20px 0;font-family:monospace;color:var(--success)">
+                00:00:00
             </div>
             <div class="tp-grid2" style="grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom:20px">
                 <div><label class="tp-label">Saat</label><input type="number" id="cdH" class="tp-input" value="0"
@@ -498,13 +595,14 @@
     <div id="docx-merge-mode" class="overlay">
         <div class="tool-panel">
             <div class="tool-panel-title">📝 DOCX Birleştir</div>
-            <div class="tool-panel-sub">İki veya daha fazla Word dosyasını birleştirin — tamamen tarayıcıda</div> <input
-                type="file" id="docxMergeInput" multiple accept=".docx" style="display:none"
+            <div class="tool-panel-sub">İki veya daha fazla Word dosyasını birleştirin — tamamen tarayıcıda</div>
+            <input type="file" id="docxMergeInput" multiple accept=".docx" style="display:none"
                 onchange="addDocxFiles(event)">
             <div class="pdf-dz" onclick="document.getElementById('docxMergeInput').click()">📂 DOCX Dosyaları Seç
                 (birden fazla)</div>
             <ul id="docxMergeList" style="list-style:none;padding:0;margin:0 0 12px"></ul><button class="tp-btn primary"
-                onclick="mergeDocx()" style="width:100%;margin-bottom:12px">Birleştir ve İndir</button>
+                onclick="mergeDocx()" style="width:100%;margin-bottom:12px">Birleştir ve
+                İndir</button>
             <div id="docxStatus" style="margin-top:8px;font-size:13px;color:var(--success);text-align:center"></div>
         </div>
         <div class="exit-info" onclick="closeAllModes()" style="justify-content:center">Çıkmak için <b>Esc</b></div>
@@ -582,26 +680,33 @@
 
             <div class="w-error-msg" id="benchWarn"
                 style="background:rgba(245, 158, 11, 0.15); border:1px solid rgba(245, 158, 11, 0.3); color:#fbbf24; text-align:left; margin-bottom:16px;">
-                ⚠️ <b>Uyarı:</b> Bu test işlemcinizin (CPU) %100'ünü kullanacak şekilde tasarlanmıştır. "Stress" modunda
+                ⚠️ <b>Uyarı:</b> Bu test işlemcinizin (CPU) %100'ünü kullanacak şekilde tasarlanmıştır. "Stress"
+                modunda
                 cihazınız ısınabilir ve fanları hızlanabilir.
             </div>
 
             <!-- Score Bracket Legend -->
             <div id="benchScoreInfo"
                 style="margin-bottom:20px; text-align:left; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:16px; font-size:12px; color:rgba(255,255,255,0.7);">
-                <div style="font-weight:700; color:#fff; margin-bottom:8px; font-size:13px;">🛡️ Puanlama & Performans
+                <div style="font-weight:700; color:#fff; margin-bottom:8px; font-size:13px;">🛡️ Puanlama &
+                    Performans
                     Segmentleri:</div>
                 <div style="display:flex; flex-direction:column; gap:6px;">
-                    <div style="display:flex; justify-content:space-between;"><span>🔥 <b>12.000+</b> Puan:</span><span
-                            style="color:#f43f5e; font-weight:800;">CANAVAR (Üst Düzey)</span></div>
-                    <div style="display:flex; justify-content:space-between;"><span>⚡ <b>8.000+</b> Puan:</span><span
-                            style="color:#eab308; font-weight:800;">ÇOK GÜÇLÜ (Gelişmiş)</span></div>
-                    <div style="display:flex; justify-content:space-between;"><span>💪 <b>4.000+</b> Puan:</span><span
-                            style="color:#3b82f6; font-weight:800;">PERFORMANSLI (Ortalama Üstü)</span></div>
-                    <div style="display:flex; justify-content:space-between;"><span>👍 <b>2.000+</b> Puan:</span><span
-                            style="color:#10b981; font-weight:800;">ORTA SEVİYE (Günlük Kullanım)</span></div>
-                    <div style="display:flex; justify-content:space-between;"><span>🐢 <b>-2.000</b> Puan:</span><span
-                            style="color:#64748b; font-weight:800;">ZAYIF (Eski Nesil/Güç Tasarrufu)</span></div>
+                    <div style="display:flex; justify-content:space-between;"><span>🔥 <b>12.000+</b>
+                            Puan:</span><span style="color:#f43f5e; font-weight:800;">CANAVAR (Üst Düzey)</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between;"><span>⚡ <b>8.000+</b>
+                            Puan:</span><span style="color:#eab308; font-weight:800;">ÇOK GÜÇLÜ (Gelişmiş)</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between;"><span>💪 <b>4.000+</b>
+                            Puan:</span><span style="color:#3b82f6; font-weight:800;">PERFORMANSLI (Ortalama
+                            Üstü)</span></div>
+                    <div style="display:flex; justify-content:space-between;"><span>👍 <b>2.000+</b>
+                            Puan:</span><span style="color:#10b981; font-weight:800;">ORTA SEVİYE (Günlük
+                            Kullanım)</span></div>
+                    <div style="display:flex; justify-content:space-between;"><span>🐢 <b>-2.000</b>
+                            Puan:</span><span style="color:#64748b; font-weight:800;">ZAYIF (Eski Nesil/Güç
+                            Tasarrufu)</span></div>
                 </div>
             </div>
 
@@ -611,7 +716,8 @@
                 style="display:none; width:100%; font-size:16px; padding:18px; margin-top:12px;">🛑 Testi İptal
                 Et</button>
         </div>
-        <div class="exit-info" onclick="stopSilverBenchmark(); closeAllModes();" style="justify-content:center">Çıkmak
+        <div class="exit-info" onclick="stopSilverBenchmark(); closeAllModes();" style="justify-content:center">
+            Çıkmak
             için <b>Esc</b></div>
     </div>
     <div id="calc-mode" class="overlay">
@@ -721,7 +827,8 @@
                         </div>
                     </div>
                     <div class="w-metric-card glass-card">
-                        <div class="m-icon-box" style="background: rgba(244,114,182,0.15); color: #f472b6;">🌬️</div>
+                        <div class="m-icon-box" style="background: rgba(244,114,182,0.15); color: #f472b6;">🌬️
+                        </div>
                         <div class="m-info">
                             <div class="m-lbl">Rüzgar Hızı</div>
                             <div class="m-val" id="wWind">-- km/s</div>
@@ -747,7 +854,8 @@
                 </div>
             </div>
 
-            <div id="wError" class="w-error-msg" style="display:none;">⚠️ Hava durumu bilgisi servisten alınamadı.</div>
+            <div id="wError" class="w-error-msg" style="display:none;">⚠️ Hava durumu bilgisi servisten alınamadı.
+            </div>
         </div>
         <div class="exit-info" onclick="closeAllModes()" style="justify-content:center">Çıkmak için <b>Esc</b></div>
     </div>
@@ -793,12 +901,13 @@
     <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/crypto-js@4.2.0/crypto-js.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/crypto-js@4.2.0/crypto-js.min.js"></script>
-    <script src="script.js?v=2.6"></script>
+    <script src="script.js?v=2.9"></script>
 
     <!-- Scroll to Top Button -->
     <button id="scrollTopBtn" onclick="window.scrollTo({top: 0, behavior: 'smooth'})" title="Yukarı Çık">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18">
+            </path>
         </svg>
     </button>
 </body>
