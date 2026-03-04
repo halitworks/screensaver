@@ -264,6 +264,9 @@ function openOverlay(id) {
     document.body.classList.add('no-scroll');
     if (document.getElementById('scrollTopBtn')) document.getElementById('scrollTopBtn').classList.remove('show');
     if (id === 'browser-test-mode') updateDeviceList();
+    if (id === 'password-mode') {
+        setTimeout(() => { generatePassword(); }, 100);
+    }
 }
 
 function closeAllModes() {
@@ -359,7 +362,8 @@ function updSt() {
 var frameAwakeInterval = null;
 
 async function toggleWakeLock() {
-    var e = document.getElementById('wakeBtn'),
+    var cb = document.getElementById('wakeBtnCheck'),
+        textEl = document.getElementById('wakeLockText'),
         t = document.getElementById('timer-display');
 
     // Init NoSleep if not exists
@@ -367,7 +371,7 @@ async function toggleWakeLock() {
         noSleep = new NoSleep();
     }
 
-    if (wl || (noSleep && noSleep.isEnabled) || e.classList.contains('active')) {
+    if (!cb.checked) {
         if (wl) {
             await wl.release();
             wl = null;
@@ -380,10 +384,9 @@ async function toggleWakeLock() {
             frameAwakeInterval = null;
         }
         fakeVid.pause();
-        e.innerText = 'Ekran Kapanmasını Engelle';
-        e.classList.remove('active');
+        textEl.innerText = 'Ekran Kapanmasını Engelle';
         clearInterval(ti);
-        t.innerText = 'Aktif Sure: 00:00:00';
+        t.innerText = 'Aktif Süre: 00:00:00';
         updSt();
     } else {
         await requestWL();
@@ -409,15 +412,15 @@ async function toggleWakeLock() {
         fakeVid.play().then(function () {
             updSt();
         }).catch(function () { updSt(); });
-        e.innerText = 'Ekran Kapanması Engellendi!';
-        e.classList.add('active');
+
+        textEl.innerText = 'Ekran Kapanması Engellendi!';
         st = Date.now();
         ti = setInterval(function () {
             var s = Math.floor((Date.now() - st) / 1e3),
                 n = Math.floor(s / 3600),
                 r = Math.floor(s % 3600 / 60),
                 o = s % 60;
-            t.innerText = 'Aktif Sure: ' + String(n).padStart(2, '0') + ':' + String(r).padStart(2, '0') + ':' + String(o).padStart(2, '0');
+            t.innerText = 'Aktif Süre: ' + String(n).padStart(2, '0') + ':' + String(r).padStart(2, '0') + ':' + String(o).padStart(2, '0');
             updSt();
         }, 1e3);
     }
@@ -784,7 +787,8 @@ async function getLocalIP() {
 }
 async function loadIPInfo() {
     var card = document.getElementById('ipCard');
-    card.innerHTML = '<div class="tp-row"><span class="tp-row-key">Yükleniyor</span><span class="tp-row-val">...</span></div>';
+    card.style.display = 'block';
+    card.innerHTML = '<div class="tp-row"><span class="tp-row-key">Yükleniyor</span><span class="tp-row-val">⏳</span></div>';
     async function fetchIP(url) {
         const res = await fetch(url, {
             timeout: 5000
@@ -793,26 +797,44 @@ async function loadIPInfo() {
         return res.json();
     }
     try {
-        let ipData;
+        var ipData;
         try {
             ipData = await fetchIP('https://ipapi.co/json/');
         } catch (e) {
             ipData = await fetchIP('https://ipinfo.io/json');
         }
         var localIP = await getLocalIP();
-        var ua = navigator.userAgent.match(/(Chrome|Firefox|Safari|Edge|Opera)[\/\s][\d.]+/);
+        var ua = navigator.userAgent;
+        var browserMatch = navigator.userAgent.match(/(Chrome|Firefox|Safari|Edge|Opera)[\/\s][\d.]+/);
+        var browser = browserMatch ? browserMatch[0] : 'Bilinmiyor';
+
+        var date = new Date().toString();
+
         var rows = [
-            ['Public IP', ipData.ip || ipData.query || '-'],
-            ['Şehir', ipData.city || '-'],
-            ['Ülke', ipData.country_name || ipData.country || '-'],
-            ['ISP', ipData.org || '-'],
-            ['Local IP', localIP],
-            ['Tarayıcı', ua ? ua[0] : 'Bilinmiyor'],
-            ['Platform', navigator.platform || '-']
+            ['IP Address', ipData.ip || ipData.query || '-'],
+            ['Country', ipData.country_name || ipData.country || '-'],
+            ['Region/State', ipData.region || '-'],
+            ['City', ipData.city || '-'],
+            ['ISP', ipData.org || ipData.isp || '-'],
+            ['Network (ASN)', ipData.asn || '-'],
+            ['Timezone', ipData.timezone || '-'],
+            ['Coordinates', (ipData.latitude && ipData.longitude) ? (ipData.latitude + ',' + ipData.longitude) : '-'],
+            ['Local IP Range', localIP],
+            ['OS / Platform', navigator.platform || navigator.oscpu || '-'],
+            ['Browser', browser],
+            ['User-Agent', ua]
         ];
-        card.innerHTML = rows.map(function (r) {
-            return '<div class="tp-row"><span class="tp-row-key">' + r[0] + '</span><span class="tp-row-val">' + r[1] + '</span></div>';
-        }).join('');
+
+        // Render headers separating sections
+        var html = '<div class="cat-header" style="margin-top:0; margin-bottom: 10px; font-size: 13px;">IP Address Location</div>';
+        for (let i = 0; i < 8; i++) {
+            html += '<div class="tp-row" style="padding: 6px 12px;"><span class="tp-row-key" style="opacity:0.7;font-weight:600;">' + rows[i][0] + '</span><span class="tp-row-val" style="font-family:monospace;font-size:13px;word-break:break-all;text-align:right;">' + rows[i][1] + '</span></div>';
+        }
+        html += '<div class="cat-header" style="margin-top:20px; margin-bottom: 10px; font-size: 13px;">TCP/IP & Browser Fingerprint</div>';
+        for (let i = 8; i < rows.length; i++) {
+            html += '<div class="tp-row" style="padding: 6px 12px;"><span class="tp-row-key" style="opacity:0.7;font-weight:600;">' + rows[i][0] + '</span><span class="tp-row-val" style="font-family:monospace;font-size:13px;word-break:break-all;text-align:right;">' + rows[i][1] + '</span></div>';
+        }
+        card.innerHTML = html;
     } catch (e) {
         card.innerHTML = '<div class="tp-row"><span class="tp-row-key">Hata</span><span class="tp-row-val">Bağlantı Sorunu (IP Servisi Yanıt Vermiyor)</span></div>';
         console.error('IP Info Error:', e);
@@ -1405,34 +1427,57 @@ function downloadQR(cid, name) {
     a.click();
 }
 
-function togglePwOpt(el) {
-    if (document.getElementById('pwMantıklı').classList.contains('checked')) return;
-    el.classList.toggle('checked');
-    var cb = el.querySelector('input');
-    if (cb) cb.checked = el.classList.contains('checked');
+function togglePwOpt(cb) {
+    var wrapper = cb.closest('.pw-modern-check');
+    if (!wrapper) return;
+
+    if (wrapper.classList.contains('disabled-opt')) {
+        cb.checked = !cb.checked;
+        return;
+    }
+    if (cb.checked) wrapper.classList.add('checked');
+    else wrapper.classList.remove('checked');
+    generatePassword();
 }
 
-function toggleMantıklı(el) {
-    el.classList.toggle('checked');
-    var isM = el.classList.contains('checked');
-    var cb = el.querySelector('input');
-    if (cb) cb.checked = isM;
-    var others = document.querySelectorAll('#pwOpts .pw-checkbox:not(#pwMantıklı)');
-    var slider = document.getElementById('pwLen');
-    var sliderLabel = slider.previousElementSibling;
-    if (isM) {
-        others.forEach(o => o.classList.add('disabled-opt'));
-        slider.classList.add('disabled-opt');
-        sliderLabel.classList.add('disabled-opt');
-    } else {
-        others.forEach(o => o.classList.remove('disabled-opt'));
-        slider.classList.remove('disabled-opt');
-        sliderLabel.classList.remove('disabled-opt');
+function toggleMantıklı(cb) {
+    var wrapper = cb.closest('.pw-modern-check');
+    var isM = cb.checked;
+    if (wrapper) {
+        if (isM) wrapper.classList.add('checked');
+        else wrapper.classList.remove('checked');
     }
+
+    var others = document.querySelectorAll('#pwOpts .pw-modern-check:not(#labelMantıklı)');
+    var slider = document.getElementById('pwLen');
+    var sliderLabel = document.querySelector('#password-mode .tp-label');
+    var pwLenVal = document.getElementById('pwLenVal');
+
+    if (isM) {
+        others.forEach(function (o) {
+            o.classList.add('disabled-opt');
+            var input = o.querySelector('input');
+            if (input) input.disabled = true;
+        });
+        if (slider) slider.disabled = true;
+        if (sliderLabel) sliderLabel.classList.add('disabled-opt');
+        if (pwLenVal) pwLenVal.classList.add('disabled-opt');
+    } else {
+        others.forEach(function (o) {
+            o.classList.remove('disabled-opt');
+            var input = o.querySelector('input');
+            if (input) input.disabled = false;
+        });
+        if (slider) slider.disabled = false;
+        if (sliderLabel) sliderLabel.classList.remove('disabled-opt');
+        if (pwLenVal) pwLenVal.classList.remove('disabled-opt');
+    }
+    generatePassword();
 }
 
 function generatePassword() {
-    var isMantıklı = document.getElementById('pwMantıklı').classList.contains('checked');
+    var pwMantıklıCb = document.querySelector('#labelMantıklı input');
+    var isMantıklı = pwMantıklıCb && pwMantıklıCb.checked;
     if (isMantıklı) {
         var words = ["Istanbul", "Ankara", "Izmir", "Bursa", "Antalya", "Adana", "Konya", "Gaziantep", "Mersin", "Diyarbakir", "Kayseri", "Eskisehir", "Samsun", "Denizli", "Sanliurfa", "Sakarya", "Malatya", "Trabzon", "Mugla", "Aydin", "London", "Paris", "Berlin", "Madrid", "Rome", "Amsterdam", "Vienna", "Prague", "Brussels", "Lisbon", "Athens", "Warsaw", "Budapest", "Stockholm", "Oslo", "Helsinki", "Copenhagen", "Dublin", "Zurich", "Geneva", "Milan", "Barcelona", "Munich", "Frankfurt", "Venice", "Florence", "Lyon", "Marseille", "Porto", "Seville", "Newyork", "Chicago", "Houston", "Miami", "Boston", "Washington", "Losangeles", "Sanfrancisco", "Lasvegas", "Dallas", "Toronto", "Montreal", "Vancouver", "Ottawa", "Mexico", "Havana", "Rio", "Saopaulo", "Buenosaires", "Santiago", "Tokyo", "Seoul", "Beijing", "Shanghai", "Bangkok", "Singapore", "Jakarta", "Mumbai", "Delhi", "Dubai", "Doha", "Riyadh", "Sydney", "Melbourne", "Cairo", "Casablanca", "Moscow", "Kiev", "Baku", "Tashkent", "Turkey", "Germany", "France", "Italy", "Spain", "England", "Russia", "Japan", "China", "Korea", "Brazil", "Canada", "America", "Mexico", "Egypt", "Greece", "Norway", "Sweden", "Switzerland", "Holland"];
         var symbols = [".", "@", "*", "_", "!"];
@@ -1452,47 +1497,134 @@ function generatePassword() {
             var nums = Math.floor(Math.random() * 90) + 10;
             result = w + ss + nums;
         }
-        document.getElementById('pwResult').innerText = result;
+        document.getElementById('pwResultText').innerText = result;
+        calculateStrength(result, true);
     } else {
         var len = parseInt(document.getElementById('pwLen').value);
-        var opts = document.querySelectorAll('#pwOpts .pw-checkbox.checked');
+        var optLabels = document.querySelectorAll('#pwOpts .pw-modern-check');
         var chars = '';
-        opts.forEach(function (o) {
-            if (o.dataset.chars) chars += o.dataset.chars;
+        var includeSymbols = false;
+
+        optLabels.forEach(function (lbl) {
+            var cb = lbl.querySelector('input');
+            if (cb && cb.checked && lbl.dataset.chars) {
+                chars += lbl.dataset.chars;
+                if (lbl.dataset.chars.includes('!')) includeSymbols = true;
+            }
         });
+
         if (!chars) {
             showToast('En az bir karakter seti sec!');
             return;
         }
+
+        var pwBenzerCb = document.querySelector('#labelBenzer input');
+        var excludeSimilar = pwBenzerCb && pwBenzerCb.checked;
+        if (excludeSimilar) {
+            chars = chars.replace(/[ilI1LoO0]/g, '');
+        }
+
+        if (!chars) {
+            showToast('Benzerleri çıkardıktan sonra karakter kalmadı!');
+            return;
+        }
+
         var pw = '',
             arr = new Uint32Array(len);
         crypto.getRandomValues(arr);
         arr.forEach(function (n) {
             pw += chars[n % chars.length];
         });
-        // Enforce minimum 2 symbols
-        var symbolChars = '!@#$%^*()-_=+[]{}|;:,./';
-        var pwArr = pw.split('');
-        var symbolCount = 0;
-        for (var si = 0; si < pwArr.length; si++) {
-            if (symbolChars.indexOf(pwArr[si]) >= 0) symbolCount++;
-        }
-        while (symbolCount < 2 && len >= 2) {
-            var rndIdx = Math.floor(Math.random() * pwArr.length);
-            if (symbolChars.indexOf(pwArr[rndIdx]) < 0) {
-                pwArr[rndIdx] = symbolChars[Math.floor(Math.random() * symbolChars.length)];
-                symbolCount++;
+
+        // Enforce minimum 2 symbols ONLY if symbol option is checked
+        if (includeSymbols) {
+            var symbolChars = '!@#$%^*()-_=+[]{}|;:,./';
+            var pwArr = pw.split('');
+            var symbolCount = 0;
+
+            for (var si = 0; si < pwArr.length; si++) {
+                if (symbolChars.indexOf(pwArr[si]) >= 0) symbolCount++;
             }
+
+            while (symbolCount < 2 && len >= 2) {
+                var rndIdx = Math.floor(Math.random() * pwArr.length);
+                if (symbolChars.indexOf(pwArr[rndIdx]) < 0) {
+                    pwArr[rndIdx] = symbolChars[Math.floor(Math.random() * symbolChars.length)];
+                    symbolCount++;
+                }
+            }
+            pw = pwArr.join('');
         }
-        pw = pwArr.join('');
-        document.getElementById('pwResult').innerText = pw;
+
+        document.getElementById('pwResultText').innerText = pw;
+        calculateStrength(pw, includeSymbols);
     }
-    document.getElementById('pwCopyNote').innerText = 'Kopyalamak icin tikla';
+    document.getElementById('pwCopyNote').innerText = 'Kopyalamak için tıkla';
+}
+
+function calculateStrength(pw, hasSymbols) {
+    let score = 0;
+    let len = pw.length;
+    let text = "Çok Zayıf";
+    let color = "#ef4444"; // danger
+    let width = "20%";
+
+    if (len > 4) score += 1;
+    if (len >= 8) score += 1;
+    if (len >= 12) score += 1;
+    if (len >= 16) score += 1;
+
+    if (/[A-Z]/.test(pw)) score += 1;
+    if (/[a-z]/.test(pw)) score += 1;
+    if (/[0-9]/.test(pw)) score += 1;
+    if (/[^a-zA-Z0-9]/.test(pw)) score += 1;
+
+    if (hasSymbols && /[^a-zA-Z0-9]/.test(pw) && len >= 12) score += 1;
+
+    if (score <= 3) {
+        text = "Çok Zayıf"; color = "#ef4444"; width = "20%";
+    } else if (score <= 4) {
+        text = "Zayıf"; color = "#f97316"; width = "40%";
+    } else if (score <= 5) {
+        text = "İyi"; color = "#eab308"; width = "60%";
+    } else if (score <= 7) {
+        text = "Güçlü"; color = "#22c55e"; width = "80%";
+    } else {
+        text = "Çok Güçlü"; color = "#10b981"; width = "100%";
+    }
+
+    let fillEl = document.getElementById('pwStrengthFill');
+    let labelEl = document.getElementById('pwStrengthLabel');
+    if (fillEl && labelEl) {
+        fillEl.style.width = width;
+        fillEl.style.background = color;
+        labelEl.innerText = text;
+        labelEl.style.color = color;
+    }
 }
 
 function copyPw() {
-    var pw = document.getElementById('pwResult').innerText;
-    if (pw && pw !== 'Uret butonuna bas') copyText(pw);
+    var pw = document.getElementById('pwResultText').innerText;
+    if (pw && pw !== 'Üret butonuna bas') {
+        copyText(pw);
+
+        let pwResult = document.getElementById('pwResult');
+        pwResult.style.transform = 'scale(0.95)';
+        pwResult.style.borderColor = 'var(--success)';
+        setTimeout(() => {
+            pwResult.style.transform = '';
+            pwResult.style.borderColor = '';
+        }, 150);
+
+        document.getElementById('pwCopyNote').innerText = 'Kopyalandı! ✓';
+        document.getElementById('pwCopyNote').style.color = 'var(--success)';
+        document.getElementById('pwCopyNote').style.opacity = '1';
+
+        setTimeout(() => {
+            document.getElementById('pwCopyNote').innerText = 'Kopyalamak için tıkla';
+            document.getElementById('pwCopyNote').style.color = 'rgba(255,255,255,0.4)';
+        }, 2000);
+    }
 }
 var pomInterval = null,
     pomTime = 25 * 60,
@@ -1767,7 +1899,7 @@ function startQrScanner(facing) {
 
     qrScanner = new Html5Qrcode('qr-reader');
     qrScanner.start(
-        { facingMode: facing, width: { ideal: 1280 }, height: { ideal: 720 } },
+        { facingMode: facing },
         {
             fps: 30,
             formatsToSupport: [
@@ -1788,6 +1920,10 @@ function startQrScanner(facing) {
         function (decodedText) {
             // Add result to list (avoid duplicates in a row)
             if (qrScanResults.length === 0 || qrScanResults[qrScanResults.length - 1].text !== decodedText) {
+                var audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+                audio.volume = 0.5;
+                audio.play().catch(e => { });
+
                 qrScanResults.push({
                     text: decodedText,
                     time: new Date().toLocaleTimeString('tr-TR')
@@ -1868,7 +2004,7 @@ function startQrScannerKeepResults(facing) {
     document.getElementById('qr-reader').innerHTML = '';
     qrScanner = new Html5Qrcode('qr-reader');
     qrScanner.start(
-        { facingMode: facing, width: { ideal: 1280 }, height: { ideal: 720 } },
+        { facingMode: facing },
         {
             fps: 30,
             formatsToSupport: [
@@ -1888,6 +2024,10 @@ function startQrScannerKeepResults(facing) {
         },
         function (decodedText) {
             if (qrScanResults.length === 0 || qrScanResults[qrScanResults.length - 1].text !== decodedText) {
+                var audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+                audio.volume = 0.5;
+                audio.play().catch(e => { });
+
                 qrScanResults.push({
                     text: decodedText,
                     time: new Date().toLocaleTimeString('tr-TR')
